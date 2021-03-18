@@ -43,6 +43,9 @@ ShowDesktopMode=0
 ShowTabBox=true
 SwitchingMode=0
 
+[ElectricBorders]
+TopLeft=None
+
 [org.kde.kdecoration2]
 BorderSize=Normal
 ButtonsOnLeft=
