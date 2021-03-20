@@ -1,0 +1,29 @@
+Source: cutefish-kwin-plugins
+Section: devel
+Priority: optional
+Maintainer: CutefishOS <cutefishos@foxmail.com>
+Build-Depends: cmake,
+               debhelper (>= 9),
+               extra-cmake-modules,
+               kwin-dev,
+               libkf5windowsystem-dev,
+               libkf5globalaccel-dev,
+               libkf5config-dev,
+               libkdecorations2-dev,
+               libkf5coreaddons-dev,
+               qtbase5-dev,
+               qtbase5-private-dev,
+               qtdeclarative5-dev,
+               qtquickcontrols2-5-dev,
+               qttools5-dev,
+               qttools5-dev-tools
+Standards-Version: 4.5.0
+Homepage: https://github.com/cutefishos/terminal
+
+Package: cutefish-kwin-plugins
+Architecture: any
+Depends: qml-module-qtquick-controls2,
+         qml-module-qtquick2,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Description: CutefishOS KWin Plugins
