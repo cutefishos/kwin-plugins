@@ -8,7 +8,7 @@ import org.kde.plasma.components 2.0 as PlasmaComponents
 import org.kde.kquickcontrolsaddons 2.0
 import org.kde.kwin 2.0 as KWin
 
-import MeuiKit 1.0 as Meui
+import FishUI 1.0 as FishUI
 
 // https://techbase.kde.org/Development/Tutorials/KWin/WindowSwitcher
 KWin.Switcher {
@@ -35,34 +35,34 @@ KWin.Switcher {
         x: (tabBox.screenGeometry.width - dialog.width) / 2
         y: (tabBox.screenGeometry.height - dialog.height) / 2
 
-        Meui.WindowBlur {
+        FishUI.WindowBlur {
             view: dialog
             geometry: Qt.rect(dialog.x, dialog.y, dialog.width, dialog.height)
             windowRadius: _background.radius
             enabled: true
         }
 
-        Meui.WindowShadow {
+        FishUI.WindowShadow {
             view: dialog
             geometry: Qt.rect(dialog.x, dialog.y, dialog.width, dialog.height)
             radius: _background.radius
         }
 
-        Meui.RoundedRect {
+        FishUI.RoundedRect {
             id: _background
             anchors.fill: parent
             radius: _background.height * 0.1
-            color: Meui.Theme.backgroundColor
-            backgroundOpacity: Meui.Theme.darkMode ? 0.3 : 0.4
+            color: FishUI.Theme.backgroundColor
+            backgroundOpacity: FishUI.Theme.darkMode ? 0.3 : 0.4
         }
 
         // Rectangle {
         //     id: _background
         //     anchors.fill: parent
         //     radius: _background.height * 0.1
-        //     color: Meui.Theme.backgroundColor
+        //     color: FishUI.Theme.backgroundColor
         //     border.width: 1
-        //     border.color: Meui.Theme.disabledTextColor
+        //     border.color: FishUI.Theme.disabledTextColor
         //     opacity: 0.5
         // }
 
@@ -201,7 +201,7 @@ KWin.Switcher {
                             Layout.fillWidth: true
                             elide: Text.ElideRight
                             horizontalAlignment: Text.AlignHCenter
-                            color: isCurrent ? Meui.Theme.highlightedTextColor : Meui.Theme.textColor
+                            color: isCurrent ? FishUI.Theme.highlightedTextColor : FishUI.Theme.textColor
                         }
                     }
                 } // GridView.delegate
@@ -212,8 +212,8 @@ KWin.Switcher {
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: _background.radius / 2
-                        radius: Meui.Theme.bigRadius
-                        color: Meui.Theme.highlightColor
+                        radius: FishUI.Theme.bigRadius
+                        color: FishUI.Theme.highlightColor
                     }
                 }
 

@@ -11,7 +11,7 @@ kwin4_effect_translucencyEnabled=false
 magiclampEnabled=false
 
 [Effect-Blur]
-BlurStrength=5
+BlurStrength=10
 NoiseStrength=0
 
 [Windows]
