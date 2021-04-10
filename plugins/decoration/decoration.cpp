@@ -173,6 +173,7 @@ void Decoration::init()
 void Decoration::reconfigure()
 {
     recalculateBorders();
+    updateResizeBorders();
     updateShadow();
 }
 
@@ -202,11 +203,10 @@ void Decoration::updateResizeBorders()
 {
     QMargins borders;
 
-    const int extender = settings()->largeSpacing();
-    borders.setLeft(extender);
-    borders.setTop(extender);
-    borders.setRight(extender);
-    borders.setBottom(extender);
+    borders.setLeft(5);
+    borders.setTop(5);
+    borders.setRight(5);
+    borders.setBottom(5);
 
     setResizeOnlyBorders(borders);
 }
@@ -261,7 +261,8 @@ void Decoration::updateShadow()
         g_shadowSize = 70;
         g_shadowStrength = 30;
         g_shadowColor = Qt::black;
-        const int shadowOverlap = m_frameRadius;
+        const int frameRadius = 12;
+        const int shadowOverlap = frameRadius;
         // const int shadowOffset = qMax(6 * g_shadowSize / 16, shadowOverlap * 2);
         const int shadowOffset = shadowOverlap;
 
@@ -304,13 +305,13 @@ void Decoration::updateShadow()
 
         painter.setPen( gradientStopColor(g_shadowColor, g_shadowStrength * 0.5));
         painter.setBrush(Qt::NoBrush);
-        painter.drawRoundedRect(innerRect, -0.5 + m_frameRadius, -0.5 + m_frameRadius);
+        painter.drawRoundedRect(innerRect, -0.5 + frameRadius, -0.5 + frameRadius);
 
         // mask out inner rect
         painter.setPen(Qt::NoPen);
         painter.setBrush(Qt::black);
         painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-        painter.drawRoundedRect(innerRect, 0.5 + m_frameRadius, 0.5 + m_frameRadius);
+        painter.drawRoundedRect(innerRect, 0.5 + frameRadius, 0.5 + frameRadius);
         painter.end();
 
         g_sShadow = QSharedPointer<KDecoration2::DecorationShadow>::create();
@@ -386,31 +387,12 @@ void Decoration::paintFrameBackground(QPainter *painter, const QRect &repaintReg
     painter->fillRect(rect(), Qt::transparent);
     painter->setRenderHint(QPainter::Antialiasing);
     painter->setPen(Qt::NoPen);
-    // painter->setBrush(decoratedClient->color(
-    //     decoratedClient->isActive()
-    //         ? KDecoration2::ColorGroup::Active
-    //         : KDecoration2::ColorGroup::Inactive,
-    //     KDecoration2::ColorRole::Frame));
-    // painter->setClipRect(0, borderTop(), size().width(), size().height() - borderTop(), Qt::IntersectClip);
-    // painter->drawRect(rect());
-
     painter->restore();
 }
 
 QColor Decoration::titleBarBackgroundColor() const
 {
     return darkMode() ? m_titleBarBgDarkColor : m_titleBarBgColor;
-
-    // const auto *decoratedClient = client().toStrongRef().data();
-    // const auto group = decoratedClient->isActive()
-    //     ? KDecoration2::ColorGroup::Active
-    //     : KDecoration2::ColorGroup::Inactive;
-    // const qreal opacity = decoratedClient->isActive()
-    //     ? s_titleBarOpacityActive
-    //     : s_titleBarOpacityInactive;
-    // QColor color = decoratedClient->color(group, KDecoration2::ColorRole::TitleBar);
-    // color.setAlphaF(opacity);
-    // return color;
 }
 
 QColor Decoration::titleBarForegroundColor() const
@@ -437,10 +419,8 @@ void Decoration::paintTitleBarBackground(QPainter *painter, const QRect &repaint
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
     painter->setPen(Qt::NoPen);
-    // painter->setBrush(titleBarBackgroundColor());
     painter->setBrush(Qt::red);
     painter->drawRoundedRect(QRect(0, 0, decoratedClient->width(), titleBarHeight()), 6, 6);
-    // painter->drawRect(QRect(0, 0, decoratedClient->width(), titleBarHeight()));
     painter->restore();
 }
 

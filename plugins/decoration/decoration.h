@@ -90,7 +90,7 @@ private:
 
 private:
     int m_titleBarHeight = 38;
-    int m_frameRadius = 10;
+    int m_frameRadius = 0;
     QColor m_titleBarBgColor = QColor(255, 255, 255, 255);
     QColor m_titleBarFgColor = QColor(56, 56, 56, 255);
     QColor m_unfocusedFgColor = QColor(127, 127, 127, 255);

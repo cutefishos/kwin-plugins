@@ -26,3 +26,4 @@ endif()
 
 # add_subdirectory(blur)
 add_subdirectory(decoration)
+add_subdirectory(roundedwindow)
