@@ -31,6 +31,7 @@
 #include <QPainter>
 #include <QSettings>
 #include <QSharedPointer>
+#include <QImageReader>
 #include <QTimer>
 
 #include <KPluginFactory>
@@ -112,6 +113,8 @@ void Decoration::init()
     auto c = client().toStrongRef().data();
     auto s = settings();
 
+    m_devicePixelRatio = m_settings->value("PixelRatio", 1.0).toReal();
+
     reconfigure();
     updateTitleBar();
 
@@ -150,8 +153,10 @@ void Decoration::init()
     // cutefishos settings
     m_fileWatcher->addPath(m_settingsFile);
     connect(m_fileWatcher, &QFileSystemWatcher::fileChanged, this, [=] {
-        updateBtnPixmap();
+        m_settings->sync();
+        m_devicePixelRatio = m_settings->value("PixelRatio", 1.0).toReal();
 
+        updateBtnPixmap();
         update(titleBar());
         updateTitleBar();
         updateButtonsGeometry();
@@ -188,11 +193,11 @@ void Decoration::recalculateBorders()
 {
     QMargins borders;
 
-    if (!isMaximized()) {
-        borders.setLeft(m_frameRadius / 2);
-        borders.setRight(m_frameRadius / 2);
-        borders.setBottom(m_frameRadius / 2);
-    }
+//    if (!isMaximized()) {
+//        borders.setLeft(m_frameRadius / 2);
+//        borders.setRight(m_frameRadius / 2);
+//        borders.setBottom(m_frameRadius / 2);
+//    }
 
     borders.setTop(titleBarHeight());
 
@@ -343,17 +348,19 @@ void Decoration::updateBtnPixmap()
 
 QPixmap Decoration::fromSvgToPixmap(const QString &file, const QSize &size)
 {
-    const qreal ratio = qApp->devicePixelRatio();
-    QPixmap pixmap(size * ratio);
-    pixmap.load(file);
-    pixmap.setDevicePixelRatio(ratio);
-    return pixmap;
+    QImageReader reader(file);
+
+    if (reader.canRead()) {
+        reader.setScaledSize(size * m_devicePixelRatio);
+        return QPixmap::fromImage(reader.read());
+    }
+
+    return QPixmap();
 }
 
 int Decoration::titleBarHeight() const
 {
-    qreal ratio = qApp->devicePixelRatio();
-    return m_titleBarHeight * ratio;
+    return m_titleBarHeight * m_devicePixelRatio;
 
     // const QFontMetrics fontMetrics(settings()->font());
     // const int baseUnit = settings()->gridUnit();

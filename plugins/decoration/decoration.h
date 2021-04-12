@@ -51,6 +51,7 @@ public:
     QPixmap restoreBtnPixmap() { return m_restoreBtnPixmap; }
 
     bool darkMode() const;
+    qreal devicePixelRatio() const { return m_devicePixelRatio; }
 
 public slots:
     void init() override;
@@ -90,7 +91,8 @@ private:
 
 private:
     int m_titleBarHeight = 38;
-    int m_frameRadius = 0;
+    int m_frameRadius = 12;
+    qreal m_devicePixelRatio = 1.0;
     QColor m_titleBarBgColor = QColor(255, 255, 255, 255);
     QColor m_titleBarFgColor = QColor(56, 56, 56, 255);
     QColor m_unfocusedFgColor = QColor(127, 127, 127, 255);

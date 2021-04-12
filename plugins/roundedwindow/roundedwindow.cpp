@@ -111,8 +111,8 @@ void RoundedWindow::paintWindow(KWin::EffectWindow *w, int mask, QRegion region,
             || w->isDock()
             || w->isPopupWindow()
             || w->isPopupMenu()
-            // || data.quads.isTransformed()
-            // || (mask & (PAINT_WINDOW_TRANSFORMED|PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS))
+            || data.quads.isTransformed()
+            || (mask & (PAINT_WINDOW_TRANSFORMED | PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS))
             || !hasShadow(data.quads)) {
         KWin::effects->paintWindow(w, mask, region, data);
         return;
