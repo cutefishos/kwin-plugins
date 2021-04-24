@@ -1,6 +1,7 @@
 /*
     This file is part of the KDE project.
 
+    SPDX-FileCopyrightText: 2021 Reven Martin <revenmartin@gmail.com>
     SPDX-FileCopyrightText: 2018 Vlad Zahorodnii <vlad.zahorodnii@kde.org>
 
     SPDX-License-Identifier: GPL-2.0-or-later

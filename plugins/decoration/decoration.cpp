@@ -85,14 +85,6 @@ void Decoration::paint(QPainter *painter, const QRect &repaintRegion)
 
         if (s->isAlphaChannelSupported() && radiusAvailable()) {
             painter->drawRoundedRect(rect(), m_frameRadius, m_frameRadius);
-
-            QPen pen;
-            pen.setWidthF(0.2);
-            pen.setColor(QColor(255, 255, 255, 255 * 0.8));
-            painter->setRenderHint(QPainter::Antialiasing);
-            painter->setPen(pen);
-            painter->setBrush(Qt::transparent);
-            painter->drawRoundedRect(QRect(rect().x() + 1, rect().y() + 1, rect().width() - 2, rect().height() - 2), m_frameRadius - 1, m_frameRadius - 1);
         } else {
             painter->drawRect(rect());
         }

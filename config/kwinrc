@@ -4,7 +4,8 @@ slidingpopupsEnabled=true
 kwin4_effect_dialogparentEnabled=true
 
 kwin4_effect_fadeEnabled=false
-kwin4_effect_scaleEnabled=true
+kwin4_effect_scaleEnabled=false
+kwin4_effect_grayscaleEnabled = false
 
 kwin4_effect_squashEnabled=false
 kwin4_effect_translucencyEnabled=false
