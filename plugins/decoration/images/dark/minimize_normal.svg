@@ -7,8 +7,8 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   sodipodi:docname="minimize.svg"
-   inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)"
+   sodipodi:docname="minimize_normal.svg"
+   inkscape:version="1.0.2 (e86c870879, 2021-01-15)"
    id="svg8"
    version="1.1"
    viewBox="0 0 7.9374997 7.9375002"
@@ -20,9 +20,9 @@
      inkscape:document-rotation="0"
      inkscape:pagecheckerboard="false"
      inkscape:window-maximized="1"
-     inkscape:window-y="0"
+     inkscape:window-y="42"
      inkscape:window-x="0"
-     inkscape:window-height="1304"
+     inkscape:window-height="1233"
      inkscape:window-width="2160"
      units="px"
      showgrid="false"
@@ -70,9 +70,9 @@
        id="4-7" />
     <polygon
        fill="#CACBCE"
-       points="25,20 25,19 24.529,19 15.471,19 15,19 15,20 15.471,20 24.529,20 "
+       points="15,19 15,20 15.471,20 24.529,20 25,20 25,19 24.529,19 15.471,19 "
        id="polygon2"
-       transform="matrix(0.36896569,0,0,0.26458333,-3.4105638,287.87186)"
-       style="fill:#CACBCE;fill-opacity:1" />
+       transform="matrix(0.36896569,0,0,0.33072917,-3.4105638,286.58201)"
+       style="fill:#cacbce;fill-opacity:1" />
   </g>
 </svg>
