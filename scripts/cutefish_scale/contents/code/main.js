@@ -10,7 +10,7 @@
 
 "use strict";
 
-var blacklist = [
+var blocklist = [
     // The logout screen has to be animated only by the logout effect.
     "ksmserver ksmserver",
     "ksmserver-logout-greeter ksmserver-logout-greeter",
@@ -44,7 +44,7 @@ var scaleEffect = {
             return window.hasDecoration;
         }
 
-        if (blacklist.indexOf(window.windowClass) != -1) {
+        if (blocklist.indexOf(window.windowClass) != -1) {
             return false;
         }
 
