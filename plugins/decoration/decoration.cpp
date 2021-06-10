@@ -226,7 +226,7 @@ void Decoration::updateButtonsGeometry()
 
     auto s = settings();
     auto c = client().toStrongRef().data();
-    int right_margin = 5;
+    int right_margin = 4;
     int button_spacing = 10;
 
     foreach (const QPointer<KDecoration2::DecorationButton> &button, m_leftButtons->buttons() + m_rightButtons->buttons()) {
