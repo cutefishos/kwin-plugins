@@ -11,6 +11,7 @@ import org.kde.kwin 2.0 as KWin
 import FishUI 1.0 as FishUI
 
 // https://techbase.kde.org/Development/Tutorials/KWin/WindowSwitcher
+
 KWin.Switcher {
     id: tabBox
     currentIndex: thumbnailGridView.currentIndex
@@ -18,8 +19,8 @@ KWin.Switcher {
     Window {
         id: dialog
         visible: tabBox.visible
+        flags: Qt.BypassWindowManagerHint | Qt.FramelessWindowHint
         color: "transparent"
-        flags: Qt.X11BypassWindowManagerHint
 
         property int maxWidth: tabBox.screenGeometry.width * 0.9
         property int maxHeight: tabBox.screenGeometry.height * 0.7
@@ -32,8 +33,8 @@ KWin.Switcher {
         width: Math.min(Math.max(thumbnailGridView.cellWidth, optimalWidth), maxWidth)
         height: Math.min(Math.max(thumbnailGridView.cellHeight, optimalHeight), maxHeight)
 
-        x: (tabBox.screenGeometry.width - dialog.width) / 2
-        y: (tabBox.screenGeometry.height - dialog.height) / 2
+        x: tabBox.screenGeometry.x + (tabBox.screenGeometry.width - dialog.width) / 2
+        y: tabBox.screenGeometry.y + (tabBox.screenGeometry.height - dialog.height) / 2
 
         FishUI.WindowBlur {
             view: dialog
@@ -48,23 +49,13 @@ KWin.Switcher {
             radius: _background.radius
         }
 
-        FishUI.RoundedRect {
+        Rectangle {
             id: _background
             anchors.fill: parent
             radius: _background.height * 0.1
             color: FishUI.Theme.backgroundColor
-            backgroundOpacity: FishUI.Theme.darkMode ? 0.3 : 0.4
+            opacity: FishUI.Theme.darkMode ? 0.3 : 0.4
         }
-
-        // Rectangle {
-        //     id: _background
-        //     anchors.fill: parent
-        //     radius: _background.height * 0.1
-        //     color: FishUI.Theme.backgroundColor
-        //     border.width: 1
-        //     border.color: FishUI.Theme.disabledTextColor
-        //     opacity: 0.5
-        // }
 
         onVisibleChanged: {
             if (visible) {
@@ -211,9 +202,10 @@ KWin.Switcher {
 
                     Rectangle {
                         anchors.fill: parent
-                        anchors.margins: _background.radius / 2
-                        radius: FishUI.Theme.bigRadius
+                        anchors.margins: FishUI.Units.largeSpacing
+                        radius: _background.radius
                         color: FishUI.Theme.highlightColor
+                        opacity: 0.8
                     }
                 }
 
