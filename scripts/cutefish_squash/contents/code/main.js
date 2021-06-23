@@ -10,9 +10,9 @@
 "use strict";
 
 var squashEffect = {
-    duration: animationTime(280),
+    duration: animationTime(300),
     loadConfig: function () {
-        squashEffect.duration = animationTime(280);
+        squashEffect.duration = animationTime(300);
     },
     slotWindowMinimized: function (window) {
         if (effects.hasActiveFullScreenEffect) {
