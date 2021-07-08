@@ -57,7 +57,7 @@ var scaleEffect = {
             return false;
         }
 
-        // Dont't animate the outline because it looks very sick.
+        // Don't animate the outline because it looks very sick.
         if (window.outline) {
             return false;
         }
