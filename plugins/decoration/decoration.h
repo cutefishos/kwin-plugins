@@ -97,7 +97,7 @@ private:
     QColor m_titleBarFgColor = QColor(56, 56, 56, 255);
     QColor m_unfocusedFgColor = QColor(127, 127, 127, 255);
 
-    QColor m_titleBarBgDarkColor = QColor(59, 59, 61);
+    QColor m_titleBarBgDarkColor = QColor(44, 44, 45);
     QColor m_titleBarFgDarkColor = QColor(202, 203, 206);
     QColor m_unfocusedFgDarkColor = QColor(112, 112, 112);
 
