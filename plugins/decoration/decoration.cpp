@@ -116,6 +116,10 @@ void Decoration::init()
     connect(s.data(), &KDecoration2::DecorationSettings::fontChanged, this, &Decoration::recalculateBorders);
     connect(s.data(), &KDecoration2::DecorationSettings::spacingChanged, this, &Decoration::recalculateBorders);
 
+    // full reconfiguration
+    connect(s.data(), &KDecoration2::DecorationSettings::reconfigured, this, &Decoration::reconfigure);
+    connect(s.data(), &KDecoration2::DecorationSettings::reconfigured, this, &Decoration::updateButtonsGeometryDelayed);
+
     // buttons
     connect(s.data(), &KDecoration2::DecorationSettings::spacingChanged, this, &Decoration::updateButtonsGeometryDelayed);
     connect(s.data(), &KDecoration2::DecorationSettings::decorationButtonsLeftChanged, this, &Decoration::updateButtonsGeometryDelayed);
@@ -135,10 +139,11 @@ void Decoration::init()
     });
 
     connect(c, &KDecoration2::DecoratedClient::widthChanged, this, &Decoration::updateTitleBar);
+
     connect(c, &KDecoration2::DecoratedClient::maximizedChanged, this, &Decoration::updateTitleBar);
+    connect(c, &KDecoration2::DecoratedClient::maximizedChanged, this, &Decoration::updateButtonsGeometry);
 
     connect(c, &KDecoration2::DecoratedClient::widthChanged, this, &Decoration::updateButtonsGeometry);
-    connect(c, &KDecoration2::DecoratedClient::maximizedChanged, this, &Decoration::updateButtonsGeometry);
     connect(c, &KDecoration2::DecoratedClient::adjacentScreenEdgesChanged, this, &Decoration::updateButtonsGeometry);
     connect(c, &KDecoration2::DecoratedClient::shadedChanged, this, &Decoration::updateButtonsGeometry);
 
@@ -212,6 +217,7 @@ void Decoration::updateTitleBar()
 {
     auto *decoratedClient = client().toStrongRef().data();
     setTitleBar(QRect(0, 0, decoratedClient->width(), titleBarHeight()));
+    update(titleBar());
 }
 
 void Decoration::updateButtonsGeometryDelayed()
@@ -221,13 +227,10 @@ void Decoration::updateButtonsGeometryDelayed()
 
 void Decoration::updateButtonsGeometry()
 {
-    if (!m_leftButtons || !m_rightButtons)
-        return;
-
     auto s = settings();
     auto c = client().toStrongRef().data();
-    int right_margin = 4;
-    int button_spacing = 10;
+    int rightMargin = 4;
+    int btnSpacing = 8;
 
     foreach (const QPointer<KDecoration2::DecorationButton> &button, m_leftButtons->buttons() + m_rightButtons->buttons()) {
         button.data()->setGeometry(QRectF(QPoint(0, 0), QSizeF(titleBarHeight(), titleBarHeight())));
@@ -235,16 +238,12 @@ void Decoration::updateButtonsGeometry()
 
     if (!m_leftButtons->buttons().isEmpty()) {
         m_leftButtons->setPos(QPointF(0, 0));
-        m_leftButtons->setSpacing(button_spacing);
+        m_leftButtons->setSpacing(btnSpacing);
     }
 
     if (!m_rightButtons->buttons().isEmpty()) {
-        // if (c->isMaximizedHorizontally()) {
-        //     right_margin = 0;
-        // }
-
-        m_rightButtons->setPos(QPointF(size().width() - m_rightButtons->geometry().width() - right_margin, 0));
-        m_rightButtons->setSpacing(button_spacing);
+        m_rightButtons->setSpacing(btnSpacing);
+        m_rightButtons->setPos(QPointF(size().width() - m_rightButtons->geometry().width() - rightMargin, 0));
     }
 
     update();
