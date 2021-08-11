@@ -24,7 +24,7 @@ var blocklist = [
 
 var scaleEffect = {
     loadConfig: function (window) {
-        var defaultDuration = 200;
+        var defaultDuration = 250;
         var duration = effect.readConfig("Duration", defaultDuration) || defaultDuration;
         scaleEffect.duration = animationTime(duration);
         scaleEffect.inScale = effect.readConfig("InScale", 0.96);

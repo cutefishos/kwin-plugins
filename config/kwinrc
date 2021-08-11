@@ -1,6 +1,9 @@
+[Compositing]
+OpenGLIsUnsafe=false
+
 [Plugins]
 blurEnabled=true
-slidingpopupsEnabled=true
+kwin4_effect_fadingpopupsEnabled=false
 kwin4_effect_dialogparentEnabled=true
 
 kwin4_effect_fadeEnabled=false
@@ -12,8 +15,8 @@ kwin4_effect_translucencyEnabled=false
 magiclampEnabled=false
 
 [Effect-Blur]
-BlurStrength=5
-NoiseStrength=0
+BlurStrength=7
+NoiseStrength=1
 
 [Windows]
 FocusStealingPreventionLevel=0
@@ -30,8 +33,8 @@ TabBox=false
 TabBoxAlternative=false
 
 [Effect-SlidingPopups]
-SlideInTime=250
-SlideOutTime=250
+SlideInTime=300
+SlideOutTime=300
 
 [TabBox]
 ActivitiesMode=1
@@ -49,6 +52,12 @@ SwitchingMode=0
 
 [ElectricBorders]
 TopLeft=None
+
+[TouchEdges]
+Bottom=None
+Left=None
+Right=None
+Top=None
 
 [org.kde.kdecoration2]
 BorderSize=Normal
