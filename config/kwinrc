@@ -14,6 +14,9 @@ kwin4_effect_squashEnabled=false
 kwin4_effect_translucencyEnabled=false
 magiclampEnabled=false
 
+cutefish_scaleEnabled = true
+
+
 [Effect-Blur]
 BlurStrength=7
 NoiseStrength=1
@@ -33,8 +36,8 @@ TabBox=false
 TabBoxAlternative=false
 
 [Effect-SlidingPopups]
-SlideInTime=300
-SlideOutTime=300
+SlideInTime=250
+SlideOutTime=250
 
 [TabBox]
 ActivitiesMode=1

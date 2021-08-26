@@ -27,10 +27,10 @@ var scaleEffect = {
         var defaultDuration = 250;
         var duration = effect.readConfig("Duration", defaultDuration) || defaultDuration;
         scaleEffect.duration = animationTime(duration);
-        scaleEffect.inScale = effect.readConfig("InScale", 0.96);
-        scaleEffect.inOpacity = effect.readConfig("InOpacity", 0.4);
-        scaleEffect.outScale = effect.readConfig("OutScale", 0.96);
-        scaleEffect.outOpacity = effect.readConfig("OutOpacity", 0.0);
+        scaleEffect.inScale = 0.96;
+        scaleEffect.inOpacity = 1.0;
+        scaleEffect.outScale = 0.96;
+        scaleEffect.outOpacity = 0.0;
     },
     isScaleWindow: function (window) {
         // We don't want to animate most of plasmashell's windows, yet, some
