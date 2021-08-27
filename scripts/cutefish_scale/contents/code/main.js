@@ -19,7 +19,8 @@ var blocklist = [
     "ksplashqml ksplashqml",
 
     "cutefish-launcher cutefish-launcher",
-    "cutefish-statusbar cutefish-statusbar"
+    "cutefish-statusbar cutefish-statusbar",
+    "cutefish-screenshot cutefish-screenshot"
 ];
 
 var scaleEffect = {
