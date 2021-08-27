@@ -19,7 +19,8 @@ var blocklist = [
 ];
 
 var allowlist = [
-    "cutefish-launcher cutefish-launcher"
+    "cutefish-launcher cutefish-launcher",
+    "cutefish-screenshot cutefish-screenshot"
 ];
 
 function isPopupWindow(window) {
