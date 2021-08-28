@@ -1,6 +1,6 @@
 /*
+ *   Copyright © 2021 Reion Wong <reionwong@gmail.com>
  *   Copyright © 2021 Reven Martin <revenmartin@gmail.com>
- *   Copyright © 2015 Robert Metsäranta <therealestrob@gmail.com>
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -22,37 +22,35 @@
 #define ROUNDEDWINDOW_H
 
 #include <kwineffects.h>
-
-namespace KWin { class GLTexture; }
+#include <kwinglplatform.h>
+#include <kwinglutils.h>
 
 class RoundedWindow : public KWin::Effect
 {
     Q_OBJECT
 
 public:
-    enum { TopLeft = 0,
-           TopRight,
-           BottomRight,
-           BottomLeft,
-           NTex };
+    enum DataRole {
+        BaseRole = KWin::DataRole::LanczosCacheRole + 100,
+        WindowRadiusRole = BaseRole + 1,
+        WindowClipPathRole = BaseRole + 2,
+        WindowMaskTextureRole = BaseRole + 3,
+        WindowDepthRole = BaseRole + 4
+    };
 
-    RoundedWindow();
+    RoundedWindow(QObject *parent = nullptr, const QVariantList &args = QVariantList());
     ~RoundedWindow();
 
     static bool supported();
     static bool enabledByDefault();
     bool hasShadow(KWin::WindowQuadList &qds);
 
-    void paintWindow(KWin::EffectWindow *w, int mask, QRegion region, KWin::WindowPaintData &data);
+    void drawWindow(KWin::EffectWindow* w, int mask, const QRegion &region, KWin::WindowPaintData& data) override;
 
 private:
-    void genMasks();
-    void genRect();
+    KWin::GLShader *m_newShader;
+    KWin::GLTexture *m_texure;
 
-private:
-    KWin::GLShader *m_shader;
-    KWin::GLTexture *m_tex[NTex];
-    KWin::GLTexture *m_rect[NTex];
     int m_frameRadius;
     QSize m_corner;
 };

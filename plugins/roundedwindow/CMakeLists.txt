@@ -1,21 +1,6 @@
-find_package(Qt5 CONFIG REQUIRED COMPONENTS
-    Gui
-    Core
-    DBus
-    UiTools
-    Widgets
-    X11Extras
-    OpenGL
-    Network
-    Xml
-)
-
 find_package(KF5CoreAddons)
 find_package(KF5Config)
 find_package(KF5WindowSystem)
-
-include_directories(${Qt5Widgets_INCLUDE_DIRS} ${Qt5X11Extras_INCLUDE_DIRS} ${Qt5Network_INCLUDE_DIRS} ${Qt5OpenGL_INCLUDE_DIRS} ${Qt5Xml_INCLUDE_DIRS})
-add_definitions(${Qt5Widgets_DEFINITIONS})
 
 find_path(EFFECTS_H kwineffects.h PATH_SUFFIXES kf5)
 
@@ -45,22 +30,20 @@ if (NOT EFFECTS_H OR NOT KWIN_GLUTILS OR NOT KWIN_EFFECTS OR NOT OPENGL)
     message(FATAL_ERROR "cant continue")
 endif (NOT EFFECTS_H OR NOT KWIN_GLUTILS OR NOT KWIN_EFFECTS OR NOT OPENGL)
 
-add_library(roundedwindow MODULE roundedwindow.cpp resources.qrc)
+add_library(roundedwindow MODULE
+    main.cpp
+    roundedwindow.cpp
+    resources.qrc
+)
 
 target_link_libraries(roundedwindow
     PUBLIC
         Qt5::Core
         Qt5::Gui
-        Qt5::DBus
-        ${KWIN_EFFECTS}
-        ${KWIN_GLUTILS}
-        epoxy
-        GL
     PRIVATE
         KF5::CoreAddons
         KF5::ConfigCore
         KF5::WindowSystem
 )
 
-install (TARGETS roundedwindow
-         DESTINATION ${QT_PLUGINS_DIR}/kwin/effects/plugins)
+install (TARGETS roundedwindow DESTINATION ${QT_PLUGINS_DIR}/kwin/effects/plugins)

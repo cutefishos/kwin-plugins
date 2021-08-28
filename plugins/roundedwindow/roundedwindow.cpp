@@ -1,6 +1,6 @@
 /*
+ *   Copyright © 2021 Reion Wong <reionwong@gmail.com>
  *   Copyright © 2021 Reven Martin <revenmartin@gmail.com>
- *   Copyright © 2015 Robert Metsäranta <therealestrob@gmail.com>
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -23,59 +23,159 @@
 // Qt
 #include <QFile>
 #include <QPainter>
+#include <QPainterPath>
+#include <QRegion>
+#include <QDebug>
 
-// KWin
-#include <kwinglplatform.h>
-#include <kwinglutils.h>
+Q_DECLARE_METATYPE(QPainterPath)
 
-KWIN_EFFECT_FACTORY_SUPPORTED_ENABLED(RoundedWindowFactory,
-                                      RoundedWindow,
-                                      "roundedwindow.json",
-                                      return RoundedWindow::supported();,
-                                      return RoundedWindow::enabledByDefault();)
+typedef void (* SetDepth)(void *, int);
+static SetDepth setDepthfunc = nullptr;
 
-RoundedWindow::RoundedWindow() 
+// From ubreffect
+static KWin::GLShader *getShader()
+{
+    // copy from kwinglutils.cpp
+    QByteArray source;
+    QTextStream stream(&source);
+
+    KWin::GLPlatform * const gl = KWin::GLPlatform::instance();
+    QByteArray varying, output, textureLookup;
+
+    if (!gl->isGLES()) {
+        const bool glsl_140 = gl->glslVersion() >= KWin::kVersionNumber(1, 40);
+
+        if (glsl_140)
+            stream << "#version 140\n\n";
+
+        varying       = glsl_140 ? QByteArrayLiteral("in")         : QByteArrayLiteral("varying");
+        textureLookup = glsl_140 ? QByteArrayLiteral("texture")    : QByteArrayLiteral("texture2D");
+        output        = glsl_140 ? QByteArrayLiteral("fragColor")  : QByteArrayLiteral("gl_FragColor");
+    } else {
+        const bool glsl_es_300 = KWin::GLPlatform::instance()->glslVersion() >= KWin::kVersionNumber(3, 0);
+
+        if (glsl_es_300)
+            stream << "#version 300 es\n\n";
+
+        // From the GLSL ES specification:
+        //
+        //     "The fragment language has no default precision qualifier for floating point types."
+        stream << "precision highp float;\n\n";
+
+        varying       = glsl_es_300 ? QByteArrayLiteral("in")         : QByteArrayLiteral("varying");
+        textureLookup = glsl_es_300 ? QByteArrayLiteral("texture")    : QByteArrayLiteral("texture2D");
+        output        = glsl_es_300 ? QByteArrayLiteral("fragColor")  : QByteArrayLiteral("gl_FragColor");
+    }
+
+    KWin::ShaderTraits traits;
+
+    traits |= KWin::ShaderTrait::MapTexture;
+    traits |= KWin::ShaderTrait::Modulate;
+    traits |= KWin::ShaderTrait::AdjustSaturation;
+
+    if (traits & KWin::ShaderTrait::MapTexture) {
+        stream << "uniform sampler2D sampler;\n";
+
+        // custom texture
+        stream << "uniform sampler2D topleft;\n";
+        stream << "uniform sampler2D topright;\n";
+        stream << "uniform sampler2D bottomleft;\n";
+        stream << "uniform sampler2D bottomright;\n";
+
+        // scale
+        stream << "uniform vec2 scale;\n";
+        stream << "uniform vec2 scale1;\n";
+        stream << "uniform vec2 scale2;\n";
+        stream << "uniform vec2 scale3;\n";
+
+        if (traits & KWin::ShaderTrait::Modulate)
+            stream << "uniform vec4 modulation;\n";
+        if (traits & KWin::ShaderTrait::AdjustSaturation)
+            stream << "uniform float saturation;\n";
+
+        stream << "\n" << varying << " vec2 texcoord0;\n";
+
+    } else if (traits & KWin::ShaderTrait::UniformColor)
+        stream << "uniform vec4 geometryColor;\n";
+
+    if (traits & KWin::ShaderTrait::ClampTexture) {
+        stream << "uniform vec4 textureClamp;\n";
+    }
+
+    if (output != QByteArrayLiteral("gl_FragColor"))
+        stream << "\nout vec4 " << output << ";\n";
+
+    stream << "\nvoid main(void)\n{\n";
+    if (traits & KWin::ShaderTrait::MapTexture) {
+        stream << "vec2 texcoordC = texcoord0;\n";
+
+
+        stream << "    " << "vec4 var;\n";
+        stream << "if (texcoordC.x < 0.5) {\n"
+                  "    if (texcoordC.y < 0.5) {\n"
+                  "        vec2 cornerCoord = vec2(texcoordC.x * scale.x, texcoordC.y * scale.y);\n"
+                  "        var = " << textureLookup << "(topleft, cornerCoord);\n"
+                  "    } else {\n"
+                  "        vec2 cornerCoordBL = vec2(texcoordC.x * scale2.x, (1.0 - texcoordC.y) * scale2.y);\n"
+                  "        var = " << textureLookup << "(bottomleft, cornerCoordBL);\n"
+                  "    }\n"
+                  "} else {\n"
+                  "    if (texcoordC.y < 0.5) {\n"
+                  "        vec2 cornerCoordTR = vec2((1.0 - texcoordC.x) * scale1.x, texcoordC.y * scale1.y);\n"
+                  "        var = " << textureLookup << "(topright, cornerCoordTR);\n"
+                  "    } else {\n"
+                  "        vec2 cornerCoordBR = vec2((1.0 - texcoordC.x) * scale3.x, (1.0 - texcoordC.y) * scale3.y);\n"
+                  "        var = " << textureLookup << "(bottomright, cornerCoordBR);\n"
+                  "    }\n"
+                  "}\n";
+
+        stream << "    vec4 texel = " << textureLookup << "(sampler, texcoordC);\n";
+        if (traits & KWin::ShaderTrait::Modulate)
+            stream << "    texel *= modulation;\n";
+        if (traits & KWin::ShaderTrait::AdjustSaturation)
+            stream << "    texel.rgb = mix(vec3(dot(texel.rgb, vec3(0.2126, 0.7152, 0.0722))), texel.rgb, saturation);\n";
+
+        stream << "    " << output << " = texel * var;\n";
+    } else if (traits & KWin::ShaderTrait::UniformColor)
+        stream << "    " << output << " = geometryColor;\n";
+
+    stream << "}";
+    stream.flush();
+
+    auto shader = KWin::ShaderManager::instance()->generateCustomShader(traits, QByteArray(), source);
+    //shaders.insert(direction, shader);
+    return shader;
+}
+
+static KWin::GLTexture *getTexture(int borderRadius)
+{
+    QPixmap pix(QSize(borderRadius, borderRadius));
+    pix.fill(Qt::transparent);
+    QPainter painter(&pix);
+    painter.setRenderHint(QPainter::Antialiasing);
+    QPainterPath path;
+    path.moveTo(borderRadius, 0);
+    path.arcTo(0, 0, 2 * borderRadius, 2 * borderRadius, 90, 90);
+    path.lineTo(borderRadius, borderRadius);
+    path.lineTo(borderRadius, 0);
+    painter.fillPath(path, Qt::white);
+
+    auto texture = new KWin::GLTexture(pix);
+    texture->setFilter(GL_LINEAR);
+    texture->setWrapMode(GL_CLAMP_TO_BORDER);
+
+    return texture;
+}
+
+RoundedWindow::RoundedWindow(QObject *, const QVariantList &)
     : KWin::Effect()
-    , m_shader(nullptr)
     , m_frameRadius(12)
     , m_corner(m_frameRadius, m_frameRadius)
-{
-    QString versionStr = "110";
-#ifdef KWIN_HAVE_OPENGLES
-    const qint64 coreVersionNumber = kVersionNumber(3, 0);
-#else
-    const qint64 version = KWin::kVersionNumber(1, 40);
-#endif
-    if (KWin::GLPlatform::instance()->glslVersion() >= version)
-        versionStr = "140";
+{   
+    setDepthfunc = (SetDepth) QLibrary::resolve("kwin.so." + qApp->applicationVersion(), "_ZN4KWin8Toplevel8setDepthEi");
 
-    QFile file(QString(":/shaders.frag.%1").arg(versionStr));
-    if (!file.open(QIODevice::ReadOnly)) {
-        qDebug() << "RoundedWindow: cannot open " + file.fileName();
-    }
-
-    m_shader = KWin::ShaderManager::instance()->generateCustomShader(KWin::ShaderTrait::MapTexture, QByteArray(), file.readAll());
-    file.close();
-
-    if (m_shader->isValid()) {
-        const int sampler = m_shader->uniformLocation("sampler");
-        const int corner = m_shader->uniformLocation("corner");
-        KWin::ShaderManager::instance()->pushShader(m_shader);
-        m_shader->setUniform(corner, 1);
-        m_shader->setUniform(sampler, 0);
-        KWin::ShaderManager::instance()->popShader();
-
-        for (int i = 0; i < NTex; ++i) {
-            m_tex[i] = 0;
-            m_rect[i] = 0;
-        }
-
-        genMasks();
-        genRect();
-    } else {
-        qDebug() << "RoundedWindow: no valid shaders found!";
-        deleteLater();
-    }
+    m_newShader = getShader();
+    m_texure = getTexture(m_frameRadius);
 }
 
 RoundedWindow::~RoundedWindow()
@@ -101,131 +201,101 @@ bool RoundedWindow::hasShadow(KWin::WindowQuadList &qds)
     return false;
 }
 
-void RoundedWindow::paintWindow(KWin::EffectWindow *w, int mask, QRegion region, KWin::WindowPaintData &data)
+void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &_region, KWin::WindowPaintData &data)
 {
-    if (!m_shader->isValid()
-            || !w->isPaintingEnabled()
+    QRegion region = _region;
+
+    if (!w->isPaintingEnabled() || ((mask & PAINT_WINDOW_LANCZOS))) {
+        return KWin::Effect::drawWindow(w, mask, region, data);
+    }
+
+    if (!m_newShader->isValid()
             || KWin::effects->hasActiveFullScreenEffect()
             || w->isDesktop()
             || w->isMenu()
             || w->isDock()
             || w->isPopupWindow()
             || w->isPopupMenu()
-            || data.quads.isTransformed()
-            || (mask & (PAINT_WINDOW_TRANSFORMED | PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS))
+            || w->isFullScreen()
             || !hasShadow(data.quads)) {
-        KWin::effects->paintWindow(w, mask, region, data);
-        return;
+        return KWin::Effect::drawWindow(w, mask, region, data);
     }
 
-    //map the corners
-    const QRect geo(w->geometry());
-    const QRect rect[NTex] = {
-        QRect(geo.topLeft(), m_corner),
-        QRect(geo.topRight()-QPoint(m_frameRadius - 1, 0), m_corner),
-        QRect(geo.bottomRight()-QPoint(m_frameRadius - 1, m_frameRadius - 1), m_corner),
-        QRect(geo.bottomLeft()-QPoint(0, m_frameRadius - 1), m_corner)
-    };
+    KWin::WindowPaintData paintData = data;
 
-    const KWin::WindowQuadList qds(data.quads);
-
-    //paint the shadow
-    data.quads = qds.select(KWin::WindowQuadShadow);
-    KWin::effects->paintWindow(w, mask, region, data);
-
-    //copy the corner regions
-    KWin::GLTexture tex[NTex];
-    const QRect s(KWin::effects->virtualScreenGeometry());
-    for (int i = 0; i < NTex; ++i) {
-        tex[i] = KWin::GLTexture(GL_RGBA8, rect[i].size());
-        tex[i].bind();
-        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rect[i].x(), s.height() - rect[i].y() - rect[i].height(), rect[i].width(), rect[i].height());
-        tex[i].unbind();
-    }
-
-    //paint the actual window
-    data.quads = qds.filterOut(KWin::WindowQuadShadow);
-    KWin::effects->paintWindow(w, mask, region, data);
-
-    //'shape' the corners
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    const int mvpMatrixLocation = m_shader->uniformLocation("modelViewProjectionMatrix");
-    KWin::ShaderManager *sm = KWin::ShaderManager::instance();
-    sm->pushShader(m_shader);
-    for (int i = 0; i < NTex; ++i) {
-        QMatrix4x4 mvp = data.screenProjectionMatrix();
-        mvp.translate(rect[i].x(), rect[i].y());
-        m_shader->setUniform(mvpMatrixLocation, mvp);
-        glActiveTexture(GL_TEXTURE1);
-        m_tex[3-i]->bind();
-        glActiveTexture(GL_TEXTURE0);
-        tex[i].bind();
-        tex[i].render(region, rect[i]);
-        tex[i].unbind();
-        m_tex[3 - i]->unbind();
+
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    auto textureTopLeft = m_texure;
+    glActiveTexture(GL_TEXTURE1);
+    textureTopLeft->bind();
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glActiveTexture(GL_TEXTURE0);
+
+    auto textureTopRight = m_texure;
+    glActiveTexture(GL_TEXTURE2);
+    textureTopRight->bind();
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glActiveTexture(GL_TEXTURE0);
+
+    auto textureBottomLeft = m_texure;
+    glActiveTexture(GL_TEXTURE3);
+    textureBottomLeft->bind();
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glActiveTexture(GL_TEXTURE0);
+
+    auto textureBottomRight = m_texure;
+    glActiveTexture(GL_TEXTURE4);
+    textureBottomRight->bind();
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glActiveTexture(GL_TEXTURE0);
+
+    paintData.shader = m_newShader;
+    KWin::ShaderManager::instance()->pushShader(m_newShader);
+
+    m_newShader->setUniform("topleft", 1);
+    m_newShader->setUniform("scale", QVector2D(w->width() * 1.0 / textureTopLeft->width(),
+                                               w->height() * 1.0 / textureTopLeft->height()));
+
+    m_newShader->setUniform("topright", 2);
+    m_newShader->setUniform("scale1", QVector2D(w->width() * 1.0 / textureTopRight->width(),
+                                                w->height() * 1.0 / textureTopRight->height()));
+
+    m_newShader->setUniform("bottomleft", 3);
+    m_newShader->setUniform("scale2", QVector2D(w->width() * 1.0 / textureBottomLeft->width(),
+                                                w->height() * 1.0 / textureBottomLeft->height()));
+
+    m_newShader->setUniform("bottomright", 4);
+    m_newShader->setUniform("scale3", QVector2D(w->width() * 1.0 / textureBottomRight->width(),
+                                                w->height() * 1.0 / textureBottomRight->height()));
+
+    // 设置 alpha 通道混合
+    if (!w->hasAlpha()) {
+        if (setDepthfunc) {
+            setDepthfunc(w->parent(), 32);
+        }
     }
-    sm->popShader();
-    data.quads = qds;
+
+    KWin::Effect::drawWindow(w, mask, region, paintData);
+    KWin::ShaderManager::instance()->popShader();
+
+    glActiveTexture(GL_TEXTURE1);
+    textureTopLeft->unbind();
+    glActiveTexture(GL_TEXTURE0);
+
+    glActiveTexture(GL_TEXTURE2);
+    textureTopRight->unbind();
+    glActiveTexture(GL_TEXTURE0);
+
+    glActiveTexture(GL_TEXTURE3);
+    textureBottomLeft->unbind();
+    glActiveTexture(GL_TEXTURE0);
+
+    glActiveTexture(GL_TEXTURE4);
+    textureBottomRight->unbind();
+    glActiveTexture(GL_TEXTURE0);
 
     glDisable(GL_BLEND);
 }
-
-void RoundedWindow::genMasks()
-{
-    for (int i = 0; i < NTex; ++i)
-        if (m_tex[i])
-            delete m_tex[i];
-
-    QImage img(m_frameRadius * 2, m_frameRadius * 2, QImage::Format_ARGB32_Premultiplied);
-    img.fill(Qt::transparent);
-    QPainter p(&img);
-    p.fillRect(img.rect(), Qt::white);
-    p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-    p.setPen(Qt::NoPen);
-    p.setBrush(Qt::white);
-    p.setRenderHint(QPainter::Antialiasing);
-    p.drawEllipse(img.rect());
-    p.end();
-
-    m_tex[TopLeft] = new KWin::GLTexture(img.copy(0, 0, m_frameRadius, m_frameRadius));
-    m_tex[TopRight] = new KWin::GLTexture(img.copy(m_frameRadius, 0, m_frameRadius, m_frameRadius));
-    m_tex[BottomRight] = new KWin::GLTexture(img.copy(m_frameRadius, m_frameRadius, m_frameRadius, m_frameRadius));
-    m_tex[BottomLeft] = new KWin::GLTexture(img.copy(0, m_frameRadius, m_frameRadius, m_frameRadius));
-}
-
-void RoundedWindow::genRect()
-{
-    for (int i = 0; i < NTex; ++i)
-        if (m_rect[i])
-            delete m_rect[i];
-
-    int m_rSize = m_frameRadius + 1;
-    QImage img(m_rSize * 2, m_rSize * 2, QImage::Format_ARGB32_Premultiplied);
-    img.fill(Qt::transparent);
-    QPainter p(&img);
-    QRect r(img.rect());
-    p.setPen(Qt::NoPen);
-    p.setBrush(QColor(0, 0, 0, 0xff));
-    p.setRenderHint(QPainter::Antialiasing);
-    p.drawEllipse(r);
-    p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-    p.setBrush(Qt::black);
-    r.adjust(1, 1, -1, -1);
-    p.drawEllipse(r);
-    p.setCompositionMode(QPainter::CompositionMode_SourceOver);
-    p.setBrush(QColor(255, 255, 255, 63));
-    p.drawEllipse(r);
-    p.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-    p.setBrush(Qt::black);
-    r.adjust(0, 1, 0, 0);
-    p.drawEllipse(r);
-    p.end();
-
-    m_rect[TopLeft] = new KWin::GLTexture(img.copy(0, 0, m_rSize, m_rSize));
-    m_rect[TopRight] = new KWin::GLTexture(img.copy(m_rSize, 0, m_rSize, m_rSize));
-    m_rect[BottomRight] = new KWin::GLTexture(img.copy(m_rSize, m_rSize, m_rSize, m_rSize));
-    m_rect[BottomLeft] = new KWin::GLTexture(img.copy(0, m_rSize, m_rSize, m_rSize));
-}
-
-#include "roundedwindow.moc"
