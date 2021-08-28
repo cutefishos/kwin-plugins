@@ -18,8 +18,8 @@ cutefish_scaleEnabled = true
 
 
 [Effect-Blur]
-BlurStrength=7
-NoiseStrength=1
+BlurStrength=15
+NoiseStrength=0
 
 [Windows]
 FocusStealingPreventionLevel=0

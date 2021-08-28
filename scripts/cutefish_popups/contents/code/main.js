@@ -75,7 +75,7 @@ function isPopupWindow(window) {
 var cutefishPopupsEffect = {
     loadConfig: function () {
         cutefishPopupsEffect.fadeInDuration = animationTime(150);
-        cutefishPopupsEffect.fadeOutDuration = animationTime(150) * 4;
+        cutefishPopupsEffect.fadeOutDuration = animationTime(100) * 4;
     },
     slotWindowAdded: function (window) {
         if (effects.hasActiveFullScreenEffect) {
