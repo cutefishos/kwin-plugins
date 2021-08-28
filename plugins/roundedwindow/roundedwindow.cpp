@@ -201,10 +201,8 @@ bool RoundedWindow::hasShadow(KWin::WindowQuadList &qds)
     return false;
 }
 
-void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &_region, KWin::WindowPaintData &data)
+void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &region, KWin::WindowPaintData &data)
 {
-    QRegion region = _region;
-
     if (!w->isPaintingEnabled() || ((mask & PAINT_WINDOW_LANCZOS))) {
         return KWin::Effect::drawWindow(w, mask, region, data);
     }
@@ -221,6 +219,13 @@ void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &_
         return KWin::Effect::drawWindow(w, mask, region, data);
     }
 
+    // 设置 alpha 通道混合
+    if (!w->hasAlpha()) {
+        if (setDepthfunc) {
+            setDepthfunc(w->parent(), 32);
+        }
+    }
+
     KWin::WindowPaintData paintData = data;
 
     glEnable(GL_BLEND);
@@ -229,25 +234,25 @@ void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &_
     float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     auto textureTopLeft = m_texure;
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE10);
     textureTopLeft->bind();
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glActiveTexture(GL_TEXTURE0);
 
     auto textureTopRight = m_texure;
-    glActiveTexture(GL_TEXTURE2);
+    glActiveTexture(GL_TEXTURE11);
     textureTopRight->bind();
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glActiveTexture(GL_TEXTURE0);
 
     auto textureBottomLeft = m_texure;
-    glActiveTexture(GL_TEXTURE3);
+    glActiveTexture(GL_TEXTURE12);
     textureBottomLeft->bind();
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glActiveTexture(GL_TEXTURE0);
 
     auto textureBottomRight = m_texure;
-    glActiveTexture(GL_TEXTURE4);
+    glActiveTexture(GL_TEXTURE13);
     textureBottomRight->bind();
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glActiveTexture(GL_TEXTURE0);
@@ -255,45 +260,38 @@ void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &_
     paintData.shader = m_newShader;
     KWin::ShaderManager::instance()->pushShader(m_newShader);
 
-    m_newShader->setUniform("topleft", 1);
+    m_newShader->setUniform("topleft", 10);
     m_newShader->setUniform("scale", QVector2D(w->width() * 1.0 / textureTopLeft->width(),
                                                w->height() * 1.0 / textureTopLeft->height()));
 
-    m_newShader->setUniform("topright", 2);
+    m_newShader->setUniform("topright", 11);
     m_newShader->setUniform("scale1", QVector2D(w->width() * 1.0 / textureTopRight->width(),
                                                 w->height() * 1.0 / textureTopRight->height()));
 
-    m_newShader->setUniform("bottomleft", 3);
+    m_newShader->setUniform("bottomleft", 12);
     m_newShader->setUniform("scale2", QVector2D(w->width() * 1.0 / textureBottomLeft->width(),
                                                 w->height() * 1.0 / textureBottomLeft->height()));
 
-    m_newShader->setUniform("bottomright", 4);
+    m_newShader->setUniform("bottomright", 13);
     m_newShader->setUniform("scale3", QVector2D(w->width() * 1.0 / textureBottomRight->width(),
                                                 w->height() * 1.0 / textureBottomRight->height()));
-
-    // 设置 alpha 通道混合
-    if (!w->hasAlpha()) {
-        if (setDepthfunc) {
-            setDepthfunc(w->parent(), 32);
-        }
-    }
 
     KWin::Effect::drawWindow(w, mask, region, paintData);
     KWin::ShaderManager::instance()->popShader();
 
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE10);
     textureTopLeft->unbind();
     glActiveTexture(GL_TEXTURE0);
 
-    glActiveTexture(GL_TEXTURE2);
+    glActiveTexture(GL_TEXTURE11);
     textureTopRight->unbind();
     glActiveTexture(GL_TEXTURE0);
 
-    glActiveTexture(GL_TEXTURE3);
+    glActiveTexture(GL_TEXTURE12);
     textureBottomLeft->unbind();
     glActiveTexture(GL_TEXTURE0);
 
-    glActiveTexture(GL_TEXTURE4);
+    glActiveTexture(GL_TEXTURE13);
     textureBottomRight->unbind();
     glActiveTexture(GL_TEXTURE0);
 
