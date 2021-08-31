@@ -28,6 +28,8 @@
 #include <QVariant>
 #include <QIcon>
 
+#include "x11shadow.h"
+
 namespace Cutefish
 {
 
@@ -78,7 +80,6 @@ private:
     bool isMaximized() const;
 
     void paintFrameBackground(QPainter *painter, const QRect &repaintRegion) const;
-    void paintTitleBarBackground(QPainter *painter, const QRect &repaintRegion) const;
     void paintCaption(QPainter *painter, const QRect &repaintRegion) const;
     void paintButtons(QPainter *painter, const QRect &repaintRegion) const;
 
@@ -109,6 +110,8 @@ private:
     QPixmap m_maximizeBtnPixmap;
     QPixmap m_minimizeBtnPixmap;
     QPixmap m_restoreBtnPixmap;
+
+    X11Shadow *m_x11Shadow;
 };
 
 }

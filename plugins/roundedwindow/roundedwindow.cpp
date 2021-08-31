@@ -32,6 +32,22 @@ Q_DECLARE_METATYPE(QPainterPath)
 typedef void (* SetDepth)(void *, int);
 static SetDepth setDepthfunc = nullptr;
 
+static QStringList allowList = { "netease-cloud-music netease-cloud-music",
+                                 "com.alibabainc.dingtalk com.alibabainc.dingtalk",
+                                 "tenvideo_universal tenvideo_universal",
+                                 "com.eusoft.ting.en com.eusoft.ting.en",
+                                 "i4toolslinux i4tools",
+                                 "youku-app youku-app",
+                                 "qqmusic qqmusic",
+                                 "mytime mytime",
+                                 "feishu feishu",
+                                 "xmind xmind",
+                                 "mtxx mtxx",
+
+                                 // Open source software
+                                 "code code"
+                               };
+
 // From ubreffect
 static KWin::GLShader *getShader()
 {
@@ -170,11 +186,28 @@ static KWin::GLTexture *getTexture(int borderRadius)
 RoundedWindow::RoundedWindow(QObject *, const QVariantList &)
     : KWin::Effect()
     , m_frameRadius(12)
-    , m_corner(m_frameRadius, m_frameRadius)
-{   
+{
     setDepthfunc = (SetDepth) QLibrary::resolve("kwin.so." + qApp->applicationVersion(), "_ZN4KWin8Toplevel8setDepthEi");
 
-    m_newShader = getShader();
+    QString name = "_NET_WM_STATE";
+    xcb_intern_atom_cookie_t cookie = xcb_intern_atom_unchecked(KWin::connection(), false, name.length(), name.toUtf8());
+    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(KWin::connection(), cookie, nullptr);
+    m_netWMStateAtom = reply->atom;
+    free(reply);
+
+    name = "_NET_WM_STATE_MAXIMIZED_HORZ";
+    cookie = xcb_intern_atom_unchecked(KWin::connection(), false, name.length(), name.toUtf8());
+    reply = xcb_intern_atom_reply(KWin::connection(), cookie, nullptr);
+    m_netWMStateMaxHorzAtom = reply->atom;
+    free(reply);
+
+    name = "_NET_WM_STATE_MAXIMIZED_VERT";
+    cookie = xcb_intern_atom_unchecked(KWin::connection(), false, name.length(), name.toUtf8());
+    reply = xcb_intern_atom_reply(KWin::connection(), cookie, nullptr);
+    m_netWMStateMaxVertAtom = reply->atom;
+    free(reply);
+
+    m_shader = getShader();
     m_texure = getTexture(m_frameRadius);
 }
 
@@ -201,14 +234,34 @@ bool RoundedWindow::hasShadow(KWin::WindowQuadList &qds)
     return false;
 }
 
+bool RoundedWindow::isMaximized(KWin::EffectWindow *w)
+{
+    if (m_netWMStateAtom == 0)
+        return false;
+
+    QByteArray rawAtomData = w->readProperty(m_netWMStateAtom, XCB_ATOM_ATOM, 32);
+    if (!rawAtomData.isEmpty()) {
+        for (int i = 0; i < rawAtomData.length(); i += sizeof(xcb_atom_t)) {
+            xcb_atom_t atom = static_cast<xcb_atom_t>(rawAtomData.data()[i]) + 512;
+            if (atom == m_netWMStateMaxHorzAtom || atom == m_netWMStateMaxVertAtom)
+                return true;
+        }
+    }
+
+    return false;
+}
+
 void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &region, KWin::WindowPaintData &data)
 {
     if (!w->isPaintingEnabled() || ((mask & PAINT_WINDOW_LANCZOS))) {
         return KWin::Effect::drawWindow(w, mask, region, data);
     }
 
-    if (!m_newShader->isValid()
-            || KWin::effects->hasActiveFullScreenEffect()
+    if (isMaximized(w)) {
+        return KWin::Effect::drawWindow(w, mask, region, data);
+    }
+
+    if (KWin::effects->hasActiveFullScreenEffect()
             || w->isDesktop()
             || w->isMenu()
             || w->isDock()
@@ -216,7 +269,8 @@ void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &r
             || w->isPopupMenu()
             || w->isFullScreen()
             || !hasShadow(data.quads)) {
-        return KWin::Effect::drawWindow(w, mask, region, data);
+        if (!allowList.contains(w->windowClass()))
+            return KWin::Effect::drawWindow(w, mask, region, data);
     }
 
     // 设置 alpha 通道混合
@@ -225,8 +279,6 @@ void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &r
             setDepthfunc(w->parent(), 32);
         }
     }
-
-    KWin::WindowPaintData paintData = data;
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -257,27 +309,30 @@ void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &r
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glActiveTexture(GL_TEXTURE0);
 
-    paintData.shader = m_newShader;
-    KWin::ShaderManager::instance()->pushShader(m_newShader);
+    KWin::GLShader *oldShader = data.shader;
+    data.shader = m_shader;
+    KWin::ShaderManager::instance()->pushShader(m_shader);
 
-    m_newShader->setUniform("topleft", 10);
-    m_newShader->setUniform("scale", QVector2D(w->width() * 1.0 / textureTopLeft->width(),
+    m_shader->setUniform("topleft", 10);
+    m_shader->setUniform("scale", QVector2D(w->width() * 1.0 / textureTopLeft->width(),
                                                w->height() * 1.0 / textureTopLeft->height()));
 
-    m_newShader->setUniform("topright", 11);
-    m_newShader->setUniform("scale1", QVector2D(w->width() * 1.0 / textureTopRight->width(),
+    m_shader->setUniform("topright", 11);
+    m_shader->setUniform("scale1", QVector2D(w->width() * 1.0 / textureTopRight->width(),
                                                 w->height() * 1.0 / textureTopRight->height()));
 
-    m_newShader->setUniform("bottomleft", 12);
-    m_newShader->setUniform("scale2", QVector2D(w->width() * 1.0 / textureBottomLeft->width(),
+    m_shader->setUniform("bottomleft", 12);
+    m_shader->setUniform("scale2", QVector2D(w->width() * 1.0 / textureBottomLeft->width(),
                                                 w->height() * 1.0 / textureBottomLeft->height()));
 
-    m_newShader->setUniform("bottomright", 13);
-    m_newShader->setUniform("scale3", QVector2D(w->width() * 1.0 / textureBottomRight->width(),
+    m_shader->setUniform("bottomright", 13);
+    m_shader->setUniform("scale3", QVector2D(w->width() * 1.0 / textureBottomRight->width(),
                                                 w->height() * 1.0 / textureBottomRight->height()));
 
-    KWin::Effect::drawWindow(w, mask, region, paintData);
+    KWin::Effect::drawWindow(w, mask, region, data);
     KWin::ShaderManager::instance()->popShader();
+
+    data.shader = oldShader;
 
     glActiveTexture(GL_TEXTURE10);
     textureTopLeft->unbind();

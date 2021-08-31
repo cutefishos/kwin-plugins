@@ -52,10 +52,11 @@ static QColor g_shadowColor = Qt::black;
 static QSharedPointer<KDecoration2::DecorationShadow> g_sShadow;
 
 Decoration::Decoration(QObject *parent, const QVariantList &args)
-    : KDecoration2::Decoration(parent, args),
-      m_settings(new QSettings(QSettings::UserScope, "cutefishos", "theme")),
-      m_settingsFile(m_settings->fileName()),
-      m_fileWatcher(new QFileSystemWatcher)
+    : KDecoration2::Decoration(parent, args)
+    , m_settings(new QSettings(QSettings::UserScope, "cutefishos", "theme"))
+    , m_settingsFile(m_settings->fileName())
+    , m_fileWatcher(new QFileSystemWatcher)
+    , m_x11Shadow(new X11Shadow)
 {
     ++g_sDecoCount;
 }
@@ -95,7 +96,6 @@ void Decoration::paint(QPainter *painter, const QRect &repaintRegion)
         m_rightButtons->paint(painter, repaintRegion);
     }
 
-    // paintTitleBarBackground(painter, repaintRegion);
     paintCaption(painter, repaintRegion);
     paintButtons(painter, repaintRegion);
 }
@@ -366,7 +366,8 @@ bool Decoration::darkMode() const
 
 bool Decoration::radiusAvailable() const
 {
-    return client().toStrongRef().data()->adjacentScreenEdges() == Qt::Edges();
+    return !isMaximized();
+    // return client().toStrongRef().data()->adjacentScreenEdges() == Qt::Edges();
 }
 
 bool Decoration::isMaximized() const
@@ -406,20 +407,6 @@ QColor Decoration::titleBarForegroundColor() const
     }
 
     return color;
-}
-
-void Decoration::paintTitleBarBackground(QPainter *painter, const QRect &repaintRegion) const
-{
-    Q_UNUSED(repaintRegion)
-
-    const auto *decoratedClient = client().toStrongRef().data();
-
-    painter->save();
-    painter->setRenderHint(QPainter::Antialiasing);
-    painter->setPen(Qt::NoPen);
-    painter->setBrush(Qt::red);
-    painter->drawRoundedRect(QRect(0, 0, decoratedClient->width(), titleBarHeight()), 6, 6);
-    painter->restore();
 }
 
 void Decoration::paintCaption(QPainter *painter, const QRect &repaintRegion) const

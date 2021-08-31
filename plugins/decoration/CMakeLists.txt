@@ -5,10 +5,11 @@ find_package(KF5CoreAddons REQUIRED)
 find_package(KF5Config REQUIRED)
 find_package(KF5WindowSystem REQUIRED)
 find_package(KDecoration2 REQUIRED)
-find_package(Qt5 CONFIG REQUIRED COMPONENTS Gui Core)
+find_package(Qt5 CONFIG REQUIRED COMPONENTS Gui Core X11Extras)
 
 set (decoration_SRCS
     decoration.cpp
+    x11shadow.cpp
     button.cpp
     resources.qrc
 )
@@ -21,6 +22,7 @@ target_link_libraries (cutefishdecoration
     PUBLIC
         Qt5::Core
         Qt5::Gui
+        Qt5::X11Extras
         KF5::ConfigCore
         KF5::ConfigGui
         KF5::CoreAddons

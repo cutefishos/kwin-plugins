@@ -25,6 +25,8 @@
 #include <kwinglplatform.h>
 #include <kwinglutils.h>
 
+#include <xcb/xcb_atom.h>
+
 class RoundedWindow : public KWin::Effect
 {
     Q_OBJECT
@@ -43,16 +45,21 @@ public:
 
     static bool supported();
     static bool enabledByDefault();
+
     bool hasShadow(KWin::WindowQuadList &qds);
+    bool isMaximized(KWin::EffectWindow *w);
 
     void drawWindow(KWin::EffectWindow* w, int mask, const QRegion &region, KWin::WindowPaintData& data) override;
 
 private:
-    KWin::GLShader *m_newShader;
+    KWin::GLShader *m_shader;
     KWin::GLTexture *m_texure;
 
+    xcb_atom_t m_netWMStateAtom = 0;
+    xcb_atom_t m_netWMStateMaxHorzAtom = 0;
+    xcb_atom_t m_netWMStateMaxVertAtom = 0;
+
     int m_frameRadius;
-    QSize m_corner;
 };
 
 #endif
