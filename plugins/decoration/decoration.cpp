@@ -106,6 +106,7 @@ void Decoration::init()
     auto s = settings();
 
     m_devicePixelRatio = m_settings->value("PixelRatio", 1.0).toReal();
+    m_frameRadius = 12 * m_devicePixelRatio;
 
     reconfigure();
     updateTitleBar();
@@ -254,13 +255,12 @@ void Decoration::updateShadow()
     // assign global shadow if exists and parameters match
     if (!g_sShadow) {
         // assign parameters
-        g_shadowSize = 70;
-        g_shadowStrength = 30;
+        g_shadowSize = 90;
+        g_shadowStrength = 35;
         g_shadowColor = Qt::black;
-        const int frameRadius = 12;
-        const int shadowOverlap = frameRadius;
+        const int shadowOverlap = m_frameRadius;
         // const int shadowOffset = qMax(6 * g_shadowSize / 16, shadowOverlap * 2);
-        const int shadowOffset = shadowOverlap;
+        const int shadowOffset = shadowOverlap / 2;
 
         // create image
         QImage image(2 * g_shadowSize, 2 * g_shadowSize, QImage::Format_ARGB32_Premultiplied);
@@ -301,13 +301,13 @@ void Decoration::updateShadow()
 
         painter.setPen( gradientStopColor(g_shadowColor, g_shadowStrength * 0.5));
         painter.setBrush(Qt::NoBrush);
-        painter.drawRoundedRect(innerRect, -0.5 + frameRadius, -0.5 + frameRadius);
+        painter.drawRoundedRect(innerRect, -0.5 + m_frameRadius, -0.5 + m_frameRadius);
 
         // mask out inner rect
         painter.setPen(Qt::NoPen);
         painter.setBrush(Qt::black);
         painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-        painter.drawRoundedRect(innerRect, 0.5 + frameRadius, 0.5 + frameRadius);
+        painter.drawRoundedRect(innerRect, 0.5 + m_frameRadius, 0.5 + m_frameRadius);
         painter.end();
 
         g_sShadow = QSharedPointer<KDecoration2::DecorationShadow>::create();

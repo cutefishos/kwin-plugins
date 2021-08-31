@@ -27,6 +27,8 @@
 #include <QRegion>
 #include <QDebug>
 
+#include <QSettings>
+
 Q_DECLARE_METATYPE(QPainterPath)
 
 typedef void (* SetDepth)(void *, int);
@@ -187,6 +189,10 @@ RoundedWindow::RoundedWindow(QObject *, const QVariantList &)
     : KWin::Effect()
     , m_frameRadius(12)
 {
+    QSettings settings(QSettings::UserScope, "cutefishos", "theme");
+    qreal devicePixelRatio = settings.value("PixelRatio", 1.0).toReal();
+    m_frameRadius = 12 * devicePixelRatio;
+
     setDepthfunc = (SetDepth) QLibrary::resolve("kwin.so." + qApp->applicationVersion(), "_ZN4KWin8Toplevel8setDepthEi");
 
     QString name = "_NET_WM_STATE";

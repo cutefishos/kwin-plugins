@@ -73,8 +73,8 @@ void Button::paint(QPainter *painter, const QRect &repaintRegion)
     painter->save();
     painter->setRenderHints(QPainter::Antialiasing);
 
-    QRect btnRect(0, 0, 28 * decoration->devicePixelRatio(),
-                        28 * decoration->devicePixelRatio());
+    QRect btnRect(0, 0, 29 * decoration->devicePixelRatio(),
+                        29 * decoration->devicePixelRatio());
     btnRect.moveCenter(rect.center());
 
     if (isHovered() || isPressed()) {
