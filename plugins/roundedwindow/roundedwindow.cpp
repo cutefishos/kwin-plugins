@@ -223,7 +223,12 @@ RoundedWindow::~RoundedWindow()
 
 bool RoundedWindow::supported()
 {
-    return KWin::effects->isOpenGLCompositing() && KWin::GLRenderTarget::supported();
+    const QByteArray desktop = qgetenv("XDG_CURRENT_DESKTOP");
+
+    if (desktop.isEmpty())
+        return false;
+
+    return desktop == "Cutefish" && KWin::effects->isOpenGLCompositing() && KWin::GLRenderTarget::supported();
 }
 
 bool RoundedWindow::enabledByDefault()
@@ -267,13 +272,15 @@ void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &r
         return KWin::Effect::drawWindow(w, mask, region, data);
     }
 
-    if (KWin::effects->hasActiveFullScreenEffect()
-            || w->isDesktop()
+    if (KWin::effects->hasActiveFullScreenEffect() || w->isFullScreen()) {
+        return KWin::Effect::drawWindow(w, mask, region, data);
+    }
+
+    if (w->isDesktop()
             || w->isMenu()
             || w->isDock()
             || w->isPopupWindow()
             || w->isPopupMenu()
-            || w->isFullScreen()
             || !hasShadow(data.quads)) {
         if (!allowList.contains(w->windowClass()))
             return KWin::Effect::drawWindow(w, mask, region, data);
