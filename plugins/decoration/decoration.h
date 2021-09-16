@@ -92,7 +92,7 @@ private:
 
 private:
     int m_titleBarHeight = 33;
-    int m_frameRadius = 12;
+    int m_frameRadius = 11;
     qreal m_devicePixelRatio = 1.0;
     QColor m_titleBarBgColor = QColor(255, 255, 255, 255);
     QColor m_titleBarFgColor = QColor(56, 56, 56, 255);

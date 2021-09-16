@@ -47,7 +47,8 @@ static QStringList allowList = { "netease-cloud-music netease-cloud-music",
                                  "mtxx mtxx",
 
                                  // Open source software
-                                 "code code"
+                                 "code code",
+                                 "motrix motrix"
                                };
 
 // From ubreffect
@@ -187,11 +188,10 @@ static KWin::GLTexture *getTexture(int borderRadius)
 
 RoundedWindow::RoundedWindow(QObject *, const QVariantList &)
     : KWin::Effect()
-    , m_frameRadius(12)
 {
     QSettings settings(QSettings::UserScope, "cutefishos", "theme");
     qreal devicePixelRatio = settings.value("PixelRatio", 1.0).toReal();
-    m_frameRadius = 12 * devicePixelRatio;
+    m_frameRadius = 11 * devicePixelRatio;
 
     setDepthfunc = (SetDepth) QLibrary::resolve("kwin.so." + qApp->applicationVersion(), "_ZN4KWin8Toplevel8setDepthEi");
 

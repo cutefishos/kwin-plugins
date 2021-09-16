@@ -106,7 +106,7 @@ void Decoration::init()
     auto s = settings();
 
     m_devicePixelRatio = m_settings->value("PixelRatio", 1.0).toReal();
-    m_frameRadius = 12 * m_devicePixelRatio;
+    m_frameRadius = 11 * m_devicePixelRatio;
 
     reconfigure();
     updateTitleBar();
@@ -329,12 +329,13 @@ void Decoration::updateShadow()
 
 void Decoration::updateBtnPixmap()
 {
+    int size = 30;
     QString dirName = darkMode() ? "dark" : "light";
 
-    m_closeBtnPixmap = fromSvgToPixmap(QString(":/images/%1/close_normal.svg").arg(dirName), QSize(30, 30));
-    m_maximizeBtnPixmap = fromSvgToPixmap(QString(":/images/%1/maximize_normal.svg").arg(dirName), QSize(30, 30));
-    m_minimizeBtnPixmap = fromSvgToPixmap(QString(":/images/%1/minimize_normal.svg").arg(dirName), QSize(30, 30));
-    m_restoreBtnPixmap = fromSvgToPixmap(QString(":/images/%1/restore_normal.svg").arg(dirName), QSize(30, 30));
+    m_closeBtnPixmap = fromSvgToPixmap(QString(":/images/%1/close_normal.svg").arg(dirName), QSize(size, size));
+    m_maximizeBtnPixmap = fromSvgToPixmap(QString(":/images/%1/maximize_normal.svg").arg(dirName), QSize(size, size));
+    m_minimizeBtnPixmap = fromSvgToPixmap(QString(":/images/%1/minimize_normal.svg").arg(dirName), QSize(size, size));
+    m_restoreBtnPixmap = fromSvgToPixmap(QString(":/images/%1/restore_normal.svg").arg(dirName), QSize(size, size));
 }
 
 QPixmap Decoration::fromSvgToPixmap(const QString &file, const QSize &size)
@@ -379,7 +380,7 @@ void Decoration::paintFrameBackground(QPainter *painter, const QRect &repaintReg
 {
     Q_UNUSED(repaintRegion)
 
-    const auto *decoratedClient = client().toStrongRef().data();
+    // const auto *decoratedClient = client().toStrongRef().data();
 
     painter->save();
 
@@ -421,8 +422,8 @@ void Decoration::paintCaption(QPainter *painter, const QRect &repaintRegion) con
     const QRect titleBarRect(0, 0, size().width(), titleBarHeight());
 
     const QRect availableRect = titleBarRect.adjusted(
-        m_leftButtons->geometry().width() + settings()->smallSpacing(), 0,
-        -(m_rightButtons->geometry().width() + settings()->smallSpacing()), 0
+        m_leftButtons->geometry().width() + 20, 0,
+        -(m_rightButtons->geometry().width() + 20), 0
     );
 
     QRect captionRect;
@@ -439,8 +440,8 @@ void Decoration::paintCaption(QPainter *painter, const QRect &repaintRegion) con
         alignment = Qt::AlignCenter;
     }
 
-    const QString caption = painter->fontMetrics().elidedText(
-        decoratedClient->caption(), Qt::ElideMiddle, captionRect.width());
+    const QString caption = painter->fontMetrics()
+            .elidedText(decoratedClient->caption(), Qt::ElideMiddle, captionRect.width());
 
     painter->save();
     painter->setFont(settings()->font());

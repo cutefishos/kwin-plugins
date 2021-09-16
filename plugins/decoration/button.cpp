@@ -71,7 +71,8 @@ void Button::paint(QPainter *painter, const QRect &repaintRegion)
     const QRect &rect = geometry().toRect();
 
     painter->save();
-    painter->setRenderHints(QPainter::Antialiasing);
+    painter->setRenderHint(QPainter::SmoothPixmapTransform, false);
+    painter->setRenderHints(QPainter::Antialiasing, true);
 
     QRect btnRect(0, 0, 29 * decoration->devicePixelRatio(),
                         29 * decoration->devicePixelRatio());
