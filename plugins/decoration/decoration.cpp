@@ -229,8 +229,8 @@ void Decoration::updateButtonsGeometryDelayed()
 void Decoration::updateButtonsGeometry()
 {
     auto s = settings();
-    auto c = client().toStrongRef().data();
-    int rightMargin = 4;
+    // auto c = client().toStrongRef().data();
+    int rightMargin = 2;
     int btnSpacing = 8;
 
     foreach (const QPointer<KDecoration2::DecorationButton> &button, m_leftButtons->buttons() + m_rightButtons->buttons()) {
@@ -329,7 +329,7 @@ void Decoration::updateShadow()
 
 void Decoration::updateBtnPixmap()
 {
-    int size = 30;
+    int size = 28;
     QString dirName = darkMode() ? "dark" : "light";
 
     m_closeBtnPixmap = fromSvgToPixmap(QString(":/images/%1/close_normal.svg").arg(dirName), QSize(size, size));

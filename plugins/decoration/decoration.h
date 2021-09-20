@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #pragma once
 
 // KDecoration
@@ -91,7 +92,7 @@ private:
     friend class MinimizeButton;
 
 private:
-    int m_titleBarHeight = 33;
+    int m_titleBarHeight = 30;
     int m_frameRadius = 11;
     qreal m_devicePixelRatio = 1.0;
     QColor m_titleBarBgColor = QColor(255, 255, 255, 255);
