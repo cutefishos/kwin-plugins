@@ -45,7 +45,7 @@ var squashEffect = {
 
         window.minimizeAnimation = animate({
             window: window,
-            curve: QEasingCurve.OutQuad, //OutQuad, InOutQuad
+            curve: QEasingCurve.OutSine, //OutQuad, InOutQuad
             duration: squashEffect.duration,
             animations: [
                 {
@@ -111,7 +111,7 @@ var squashEffect = {
 
         window.unminimizeAnimation = animate({
             window: window,
-            curve: QEasingCurve.InOutQuad, // QEasingCurve.OutSine,
+            curve: QEasingCurve.OutSine, // QEasingCurve.OutSine,
             duration: squashEffect.duration,
             animations: [
                 {
