@@ -117,9 +117,11 @@ static KWin::GLShader *getShader()
     } else if (traits & KWin::ShaderTrait::UniformColor)
         stream << "uniform vec4 geometryColor;\n";
 
+    #if KWIN_EFFECT_API_VERSION < 233
     if (traits & KWin::ShaderTrait::ClampTexture) {
         stream << "uniform vec4 textureClamp;\n";
     }
+    #endif
 
     if (output != QByteArrayLiteral("gl_FragColor"))
         stream << "\nout vec4 " << output << ";\n";
@@ -236,6 +238,7 @@ bool RoundedWindow::enabledByDefault()
     return supported();
 }
 
+#if KWIN_EFFECT_API_VERSION < 233
 bool RoundedWindow::hasShadow(KWin::WindowQuadList &qds)
 {
     for (int i = 0; i < qds.count(); ++i)
@@ -244,6 +247,7 @@ bool RoundedWindow::hasShadow(KWin::WindowQuadList &qds)
 
     return false;
 }
+#endif
 
 bool RoundedWindow::isMaximized(KWin::EffectWindow *w)
 {
@@ -281,7 +285,10 @@ void RoundedWindow::drawWindow(KWin::EffectWindow *w, int mask, const QRegion &r
             || w->isDock()
             || w->isPopupWindow()
             || w->isPopupMenu()
-            || !hasShadow(data.quads)) {
+            #if KWIN_EFFECT_API_VERSION < 233
+                 || !hasShadow(data.quads)
+            #endif
+        ) {
         if (!allowList.contains(w->windowClass()))
             return KWin::Effect::drawWindow(w, mask, region, data);
     }
