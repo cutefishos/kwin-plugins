@@ -22,7 +22,7 @@ KWin.Switcher {
         flags: Qt.BypassWindowManagerHint | Qt.FramelessWindowHint
         color: "transparent"
 
-        property int maxWidth: tabBox.screenGeometry.width * 0.9
+        property int maxWidth: tabBox.screenGeometry.width * 0.95
         property int maxHeight: tabBox.screenGeometry.height * 0.7
         property int optimalWidth: thumbnailGridView.cellWidth * gridColumns
         property int optimalHeight: thumbnailGridView.cellHeight * gridRows
@@ -36,11 +36,15 @@ KWin.Switcher {
         x: tabBox.screenGeometry.x + (tabBox.screenGeometry.width - dialog.width) / 2
         y: tabBox.screenGeometry.y + (tabBox.screenGeometry.height - dialog.height) / 2
 
+        FishUI.WindowHelper {
+            id: windowHelper
+        }
+
         FishUI.WindowBlur {
             view: dialog
             geometry: Qt.rect(dialog.x, dialog.y, dialog.width, dialog.height)
             windowRadius: _background.radius
-            enabled: true
+            enabled: windowHelper.compositing
         }
 
         FishUI.WindowShadow {
@@ -52,9 +56,12 @@ KWin.Switcher {
         Rectangle {
             id: _background
             anchors.fill: parent
-            radius: _background.height * 0.1
+            radius: windowHelper.compositing ? 14 : 0
             color: FishUI.Theme.backgroundColor
-            opacity: FishUI.Theme.darkMode ? 0.3 : 0.4
+            opacity: windowHelper.compositing ? FishUI.Theme.darkMode ? 0.3 : 0.4 : 1.0
+
+            border.color: FishUI.Theme.darkMode ? "#686868" : "#D9D9D9"
+            border.width: windowHelper.compositing ? 0 : 1
         }
 
         onVisibleChanged: {
@@ -147,7 +154,7 @@ KWin.Switcher {
                 // allow expansion on increasing count
                 property int highCount: 0
                 onCountChanged: {
-                    if (highCount < count) {
+                    if (highCount != count) {
                         dialogMainItem.calculateColumnCount();
                         highCount = count;
                     }
@@ -175,7 +182,7 @@ KWin.Switcher {
 
                     ColumnLayout {
                         anchors.fill: parent
-                        anchors.margins: _background.radius / 2
+                        anchors.margins: 16
 
                         QIconItem {
                             id: iconItem
@@ -205,7 +212,7 @@ KWin.Switcher {
                         anchors.margins: FishUI.Units.largeSpacing
                         radius: _background.radius
                         color: FishUI.Theme.highlightColor
-                        opacity: 0.8
+                        opacity: 0.7
                     }
                 }
 
