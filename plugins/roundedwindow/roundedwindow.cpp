@@ -43,6 +43,7 @@ static QStringList allowList = { "netease-cloud-music netease-cloud-music",
                                  "qqmusic qqmusic",
                                  "mytime mytime",
                                  "feishu feishu",
+                                 "bytedance-feishu bytedance-feishu",
                                  "xmind xmind",
                                  "mtxx mtxx",
 
