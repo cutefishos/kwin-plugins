@@ -27,7 +27,7 @@
 #include <KDecoration2/DecorationShadow>
 
 // Qt
-#include <QApplication>
+#include <QtWidgets/QApplication>
 #include <QPainter>
 #include <QSettings>
 #include <QSharedPointer>
