@@ -49,7 +49,7 @@ HighlightWindows=true
 LayoutName=cutefish_thumbnail
 MinimizedMode=0
 MultiScreenMode=0
-ShowDesktopMode=0
+ShowDesktopMode=1
 ShowTabBox=true
 SwitchingMode=0
 

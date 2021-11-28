@@ -47,6 +47,9 @@ static QStringList allowList = { "netease-cloud-music netease-cloud-music",
                                  "xmind xmind",
                                  "mtxx mtxx",
 
+                                 // Wine
+                                 "wechat.exe wechat.exe",
+
                                  // Open source software
                                  "code code",
                                  "motrix motrix"
