@@ -46,6 +46,7 @@ static QStringList allowList = { "netease-cloud-music netease-cloud-music",
                                  "bytedance-feishu bytedance-feishu",
                                  "xmind xmind",
                                  "mtxx mtxx",
+                                 "ynote-desktop ynote-desktop",
 
                                  // Open source software
                                  "code code",

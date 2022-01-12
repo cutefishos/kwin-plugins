@@ -74,9 +74,13 @@ void Button::paint(QPainter *painter, const QRect &repaintRegion)
     painter->setRenderHint(QPainter::SmoothPixmapTransform, false);
     painter->setRenderHints(QPainter::Antialiasing, true);
 
-    QRect btnRect(0, 0, 28 * decoration->devicePixelRatio(),
-                        28 * decoration->devicePixelRatio());
+    QRect btnRect(0, 0, 26 * decoration->devicePixelRatio(),
+                        26 * decoration->devicePixelRatio());
     btnRect.moveCenter(rect.center());
+
+    QRect imgRect(0, 0, 24 * decoration->devicePixelRatio(),
+                        24 * decoration->devicePixelRatio());
+    imgRect.moveCenter(rect.center());
 
     if (isHovered() || isPressed()) {
         painter->setPen(Qt::NoPen);
@@ -94,18 +98,18 @@ void Button::paint(QPainter *painter, const QRect &repaintRegion)
         break;
     }
     case KDecoration2::DecorationButtonType::Minimize: {
-        painter->drawPixmap(btnRect, decoration->minimizeBtnPixmap());
+        painter->drawPixmap(imgRect, decoration->minimizeBtnPixmap());
         break;
     }
     case KDecoration2::DecorationButtonType::Maximize: {
         if (isChecked())
-            painter->drawPixmap(btnRect, decoration->restoreBtnPixmap());
+            painter->drawPixmap(imgRect, decoration->restoreBtnPixmap());
         else
-            painter->drawPixmap(btnRect, decoration->maximizeBtnPixmap());
+            painter->drawPixmap(imgRect, decoration->maximizeBtnPixmap());
         break;
     }
     case KDecoration2::DecorationButtonType::Close: {
-        painter->drawPixmap(btnRect, decoration->closeBtnPixmap());
+        painter->drawPixmap(imgRect, decoration->closeBtnPixmap());
         break;
     }
     default:

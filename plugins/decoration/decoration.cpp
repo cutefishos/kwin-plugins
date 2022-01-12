@@ -329,7 +329,7 @@ void Decoration::updateShadow()
 
 void Decoration::updateBtnPixmap()
 {
-    int size = 28;
+    int size = 24;
     QString dirName = darkMode() ? "dark" : "light";
 
     m_closeBtnPixmap = fromSvgToPixmap(QString(":/images/%1/close_normal.svg").arg(dirName), QSize(size, size));
