@@ -12,6 +12,7 @@
             "KWin/Effect"
         ],
         "EnabledByDefault": true,
+        "Id": "cutefish_popups",
         "Version": "1.0"
     },
     "X-KDE-Ordering": "60",
