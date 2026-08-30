@@ -7,8 +7,13 @@ Build-Depends: cmake,
                extra-cmake-modules,
                kwin-dev,
                libkdecorations3-dev,
+               libkf6config-dev,
                libkf6coreaddons-dev,
-               qt6-base-dev
+               libkf6windowsystem-dev,
+               libepoxy-dev,
+               libwayland-dev,
+               qt6-base-dev,
+               qt6-declarative-dev
 Standards-Version: 4.5.0
 Homepage: https://cutefishos.com
 
