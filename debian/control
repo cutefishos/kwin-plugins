@@ -12,6 +12,7 @@ Build-Depends: cmake,
                libkf6windowsystem-dev,
                libepoxy-dev,
                libwayland-dev,
+               pkg-config,
                qt6-base-dev,
                qt6-declarative-dev
 Standards-Version: 4.5.0

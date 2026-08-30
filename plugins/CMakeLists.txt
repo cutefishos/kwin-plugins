@@ -19,6 +19,7 @@ if(CUTEFISH_BUILD_KWIN6_EFFECT)
         list(APPEND CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
     endif()
 
+    find_package(PkgConfig REQUIRED)
     find_package(Qt6 CONFIG QUIET COMPONENTS Core Gui DBus Quick Widgets)
     find_package(KF6Config QUIET)
     find_package(KF6CoreAddons QUIET)
