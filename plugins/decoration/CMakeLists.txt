@@ -1,37 +1,52 @@
-project (cutefishdecoration)
-set(CMAKE_CXX_STANDARD 11)
+cmake_minimum_required(VERSION 3.16)
+project(cutefishdecoration LANGUAGES CXX)
 
-find_package(KF5CoreAddons REQUIRED)
-find_package(KF5Config REQUIRED)
-find_package(KF5WindowSystem REQUIRED)
-find_package(KDecoration2 REQUIRED)
-find_package(Qt5 CONFIG REQUIRED COMPONENTS Gui Widgets Core X11Extras)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
-set (decoration_SRCS
+include(GNUInstallDirs)
+
+find_package(Qt6 CONFIG REQUIRED COMPONENTS Core Gui Widgets)
+find_package(KF6CoreAddons REQUIRED)
+find_package(KDecoration3 REQUIRED)
+
+set(decoration_SRCS
     decoration.cpp
-    x11shadow.cpp
     button.cpp
     resources.qrc
 )
 
-add_library (cutefishdecoration MODULE
-    ${decoration_SRCS}
-)
+add_library(cutefishdecoration MODULE ${decoration_SRCS})
 
-target_link_libraries (cutefishdecoration
-    PUBLIC
-        Qt5::Core
-        Qt5::Gui
-        Qt5::Widgets
-        Qt5::X11Extras
-        KF5::ConfigCore
-        KF5::ConfigGui
-        KF5::CoreAddons
-        KF5::WindowSystem
+# KWin looks the decoration plugin up by file name (the "library" key of the
+# [org.kde.kdecoration2] group in kwinrc), so the file has to be named after the
+# plugin id.
+set_target_properties(cutefishdecoration PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "org.cutefish.decoration")
 
+target_link_libraries(cutefishdecoration
     PRIVATE
-        KDecoration2::KDecoration
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Widgets
+        KF6::CoreAddons
+        KDecoration3::KDecoration
 )
 
-install (TARGETS cutefishdecoration
-         DESTINATION ${QT_PLUGINS_DIR}/org.kde.kdecoration2)
+if(NOT KDE_INSTALL_PLUGINDIR)
+    find_program(QT6_QTPATHS_EXECUTABLE qtpaths6)
+    if(QT6_QTPATHS_EXECUTABLE)
+        execute_process(COMMAND "${QT6_QTPATHS_EXECUTABLE}" --query QT_INSTALL_PLUGINS
+            OUTPUT_VARIABLE KDE_INSTALL_PLUGINDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    endif()
+endif()
+
+if(NOT KDE_INSTALL_PLUGINDIR)
+    set(KDE_INSTALL_PLUGINDIR "${CMAKE_INSTALL_LIBDIR}/qt6/plugins")
+endif()
+
+install(TARGETS cutefishdecoration
+    DESTINATION "${KDE_INSTALL_PLUGINDIR}/org.kde.kdecoration3")

@@ -1,36 +1,18 @@
-/*
- * Copyright (C) 2020 PandaOS Team.
- *
- * Author:     rekols <rekols@foxmail.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+#pragma once
 
-#ifndef BUTTON_H
-#define BUTTON_H
+#include <KDecoration3/DecorationButton>
 
-#include <KDecoration2/DecorationButton>
-
-class Button : KDecoration2::DecorationButton
+class Button : public KDecoration3::DecorationButton
 {
 public:
-    explicit Button(KDecoration2::DecorationButtonType type, const QPointer<KDecoration2::Decoration> &decoration, QObject *parent = nullptr);
+    explicit Button(KDecoration3::DecorationButtonType type,
+                    KDecoration3::Decoration *decoration,
+                    QObject *parent = nullptr);
 
-    static DecorationButton *create(KDecoration2::DecorationButtonType type, KDecoration2::Decoration *decoration, QObject *parent);
+    static KDecoration3::DecorationButton *create(KDecoration3::DecorationButtonType type,
+                                                    KDecoration3::Decoration *decoration,
+                                                    QObject *parent);
 
 protected:
-    void paint(QPainter *painter, const QRect &repaintRegion) override;
+    void paint(QPainter *painter, const QRectF &repaintArea) override;
 };
-
-#endif // BUTTON_H

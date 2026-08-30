@@ -7,9 +7,8 @@ CutefishOS. The plugins target KWin 6 (Plasma 6 / KDecoration3).
 
 | Path | Description |
 | --- | --- |
-| `plugins/decoration3` | KDecoration3 window decoration (installed as `org.cutefish.decoration`) |
-| `plugins/decoration` | Legacy KDecoration2 decoration for KWin 5, not built by default |
-| `plugins/roundedwindow` | Legacy KWin 5 C++ effect, not built (uses private KWin 5 APIs) |
+| `plugins/decoration` | KDecoration3 window decoration (installed as `org.cutefish.decoration`) |
+| `plugins/roundedwindow` | Rounded corners effect (`cutefish_roundedwindow`) |
 | `scripts/` | JavaScript effects and scripts (`cutefish_scale`, `cutefish_squash`, `cutefish_popups`, `cutefishlauncher`) |
 | `tabbox/` | `cutefish_thumbnail` window switcher layout |
 | `config/` | System-wide KWin defaults installed into `/etc/xdg` |
@@ -18,7 +17,7 @@ CutefishOS. The plugins target KWin 6 (Plasma 6 / KDecoration3).
 
 Debian/Ubuntu:
 
-`sudo apt install cmake extra-cmake-modules qt6-base-dev libkf6coreaddons-dev libkdecorations3-dev kwin-common`
+`sudo apt install cmake extra-cmake-modules qt6-base-dev libkf6coreaddons-dev libkdecorations3-dev kwin-dev kwin-common`
 
 `kwin-common` is required at runtime: it provides the KPackage structures and
 the `org.kde.kwin` QML module that KWin uses to load scripted effects, scripts
@@ -34,8 +33,11 @@ make
 sudo make install
 ```
 
-Build options: `CUTEFISH_BUILD_KWIN6_DECORATION` (ON), `CUTEFISH_BUILD_KWIN5_DECORATION`
-(OFF) and `CUTEFISH_BUILD_KWIN5_EFFECT` (OFF).
+Build options: `CUTEFISH_BUILD_KWIN6_DECORATION` (ON) and `CUTEFISH_BUILD_KWIN6_EFFECT` (ON).
+
+The rounded corners effect is a binary KWin plugin: KWin provides no stable effect
+ABI, so it has to be rebuilt against the KWin version it runs on (KWin refuses to
+load a plugin built against a different one).
 
 ## Enabling
 

@@ -1,65 +1,57 @@
-/*
- *   Copyright © 2021 Reion Wong <reionwong@gmail.com>
- *   Copyright © 2021 Reven Martin <revenmartin@gmail.com>
+#pragma once
+
+#include <effect/offscreeneffect.h>
+
+#include <QSet>
+
+#include <memory>
+
+namespace KWin
+{
+class GLShader;
+}
+
+/**
+ * Rounds the corners of ordinary windows.
  *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *   General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; see the file COPYING.  if not, write to
- *   the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- *   Boston, MA 02110-1301, USA.
+ * The window is redirected into an offscreen texture, which is then painted with
+ * a shader that masks out the four corners with a rounded rectangle. The offscreen
+ * texture always has an alpha channel, so windows that do not have one themselves
+ * can be given a rounded shape as well.
  */
-
-#ifndef ROUNDEDWINDOW_H
-#define ROUNDEDWINDOW_H
-
-#include <kwineffects.h>
-#include <kwinglplatform.h>
-#include <kwinglutils.h>
-
-#include <xcb/xcb_atom.h>
-
-class RoundedWindow : public KWin::Effect
+class RoundedWindow : public KWin::OffscreenEffect
 {
     Q_OBJECT
 
 public:
-    enum DataRole {
-        BaseRole = KWin::DataRole::LanczosCacheRole + 100,
-        WindowRadiusRole = BaseRole + 1,
-        WindowClipPathRole = BaseRole + 2,
-        WindowMaskTextureRole = BaseRole + 3,
-        WindowDepthRole = BaseRole + 4
-    };
-
-    RoundedWindow(QObject *parent = nullptr, const QVariantList &args = QVariantList());
-    ~RoundedWindow();
+    RoundedWindow();
+    ~RoundedWindow() override;
 
     static bool supported();
     static bool enabledByDefault();
 
-    bool hasShadow(KWin::WindowQuadList &qds);
-    bool isMaximized(KWin::EffectWindow *w);
+    void reconfigure(ReconfigureFlags flags) override;
 
-    void drawWindow(KWin::EffectWindow* w, int mask, const QRegion &region, KWin::WindowPaintData& data) override;
+    void prePaintWindow(KWin::EffectWindow *window,
+                        KWin::WindowPrePaintData &data,
+                        std::chrono::milliseconds presentTime) override;
+
+    void drawWindow(const KWin::RenderTarget &renderTarget,
+                    const KWin::RenderViewport &viewport,
+                    KWin::EffectWindow *window,
+                    int mask,
+                    const QRegion &region,
+                    KWin::WindowPaintData &data) override;
 
 private:
-    KWin::GLShader *m_shader;
-    KWin::GLTexture *m_texure;
+    void handleWindowAdded(KWin::EffectWindow *window);
+    void handleWindowDeleted(KWin::EffectWindow *window);
+    void updateWindow(KWin::EffectWindow *window);
+    bool shouldRound(KWin::EffectWindow *window) const;
+    bool isMaximized(KWin::EffectWindow *window) const;
+    KWin::GLShader *shader();
 
-    xcb_atom_t m_netWMStateAtom = 0;
-    xcb_atom_t m_netWMStateMaxHorzAtom = 0;
-    xcb_atom_t m_netWMStateMaxVertAtom = 0;
-
-    int m_frameRadius;
+    std::unique_ptr<KWin::GLShader> m_shader;
+    QSet<KWin::EffectWindow *> m_redirected;
+    qreal m_frameRadius = 11;
 };
-
-#endif

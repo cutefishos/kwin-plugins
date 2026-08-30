@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "reionwong@gmail.com",
+                "Name": "Reion Wong"
+            }
+        ],
+        "Category": "Appearance",
+        "Description": "Round the corners of windows",
+        "EnabledByDefault": true,
+        "Icon": "preferences-system-windows-effect-squash",
+        "Id": "cutefish_roundedwindow",
+        "License": "GPL",
+        "Name": "CutefishOS Rounded Corners",
+        "Version": "1"
+    },
+    "X-KDE-Ordering": 5
+}

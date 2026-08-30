@@ -1,49 +1,45 @@
-find_package(KF5CoreAddons)
-find_package(KF5Config)
-find_package(KF5WindowSystem)
+cmake_minimum_required(VERSION 3.16)
+project(cutefish_roundedwindow LANGUAGES CXX)
 
-find_path(EFFECTS_H kwineffects.h PATH_SUFFIXES kf5)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
 
-if (EFFECTS_H)
-    include_directories(${EFFECTS_H})
-else (EFFECTS_H)
-    message(STATUS "didnt find kwineffects.h, not building effects")
-endif (EFFECTS_H)
+# The plugin factory class is created by a macro, so automoc has to be taught
+# about it.
+list(APPEND CMAKE_AUTOMOC_MACRO_NAMES
+    KWIN_EFFECT_FACTORY
+    KWIN_EFFECT_FACTORY_ENABLED
+    KWIN_EFFECT_FACTORY_SUPPORTED
+    KWIN_EFFECT_FACTORY_SUPPORTED_ENABLED)
 
-find_library(KWIN_EFFECTS NAMES kwineffects PATH_SUFFIXES kf5)
-find_library(KWIN_GLUTILS NAMES kwinglutils PATH_SUFFIXES kf5)
-find_library(OPENGL NAMES GL)
+include(GNUInstallDirs)
 
-if (NOT KWIN_EFFECTS)
-    message(STATUS "didnt find kwineffects lib, not building effects")
-endif (NOT KWIN_EFFECTS)
+find_package(Qt6 CONFIG REQUIRED COMPONENTS Core Gui)
+find_package(KWin REQUIRED)
 
-if (NOT KWIN_GLUTILS)
-    message(STATUS "didnt find kwin glutils lib, not building effects")
-endif (NOT KWIN_GLUTILS)
+add_library(cutefish_roundedwindow MODULE roundedwindow.cpp)
 
-if (NOT OPENGL)
-    message(STATUS "didnt find opengl, not building effects")
-endif (NOT OPENGL)
+set_target_properties(cutefish_roundedwindow PROPERTIES PREFIX "")
 
-if (NOT EFFECTS_H OR NOT KWIN_GLUTILS OR NOT KWIN_EFFECTS OR NOT OPENGL)
-    message(FATAL_ERROR "cant continue")
-endif (NOT EFFECTS_H OR NOT KWIN_GLUTILS OR NOT KWIN_EFFECTS OR NOT OPENGL)
-
-add_library(roundedwindow MODULE
-    main.cpp
-    roundedwindow.cpp
-    resources.qrc
-)
-
-target_link_libraries(roundedwindow
-    PUBLIC
-        Qt5::Core
-        Qt5::Gui
+target_link_libraries(cutefish_roundedwindow
     PRIVATE
-        KF5::CoreAddons
-        KF5::ConfigCore
-        KF5::WindowSystem
+        Qt6::Core
+        Qt6::Gui
+        KWin::kwin
 )
 
-install (TARGETS roundedwindow DESTINATION ${QT_PLUGINS_DIR}/kwin/effects/plugins)
+if(NOT KDE_INSTALL_PLUGINDIR)
+    find_program(QT6_QTPATHS_EXECUTABLE qtpaths6)
+    if(QT6_QTPATHS_EXECUTABLE)
+        execute_process(COMMAND "${QT6_QTPATHS_EXECUTABLE}" --query QT_INSTALL_PLUGINS
+            OUTPUT_VARIABLE KDE_INSTALL_PLUGINDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    endif()
+endif()
+
+if(NOT KDE_INSTALL_PLUGINDIR)
+    set(KDE_INSTALL_PLUGINDIR "${CMAKE_INSTALL_LIBDIR}/qt6/plugins")
+endif()
+
+install(TARGETS cutefish_roundedwindow
+    DESTINATION "${KDE_INSTALL_PLUGINDIR}/kwin/effects/plugins")

@@ -1,118 +1,65 @@
-/*
- * Copyright (C) 2020 PandaOS Team.
- *
- * Author:     rekols <rekols@foxmail.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 #pragma once
 
-// KDecoration
-#include <KDecoration2/Decoration>
-#include <KDecoration2/DecorationButtonGroup>
+#include <KDecoration3/Decoration>
+#include <KDecoration3/DecorationButtonGroup>
 
-// Qt
 #include <QFileSystemWatcher>
+#include <QPixmap>
 #include <QSettings>
-#include <QVariant>
-#include <QIcon>
-
-#include "x11shadow.h"
 
 namespace Cutefish
 {
 
-class CloseButton;
-class MaximizeButton;
-class MinimizeButton;
-
-class Decoration : public KDecoration2::Decoration
+class Decoration : public KDecoration3::Decoration
 {
     Q_OBJECT
 
 public:
-    Decoration(QObject *parent = nullptr, const QVariantList &args = QVariantList());
+    explicit Decoration(QObject *parent = nullptr, const QVariantList &args = {});
     ~Decoration() override;
 
-    void paint(QPainter *painter, const QRect &repaintRegion) override;
+    bool init() override;
+    void paint(QPainter *painter, const QRectF &repaintArea) override;
 
-    QPixmap closeBtnPixmap() { return m_closeBtnPixmap; }
-    QPixmap maximizeBtnPixmap() { return m_maximizeBtnPixmap; }
-    QPixmap minimizeBtnPixmap() { return m_minimizeBtnPixmap; }
-    QPixmap restoreBtnPixmap() { return m_restoreBtnPixmap; }
-
-    bool darkMode() const;
+    bool darkMode() const { return m_darkMode; }
     qreal devicePixelRatio() const { return m_devicePixelRatio; }
-
-public slots:
-    void init() override;
+    QPixmap buttonPixmap(KDecoration3::DecorationButtonType type, bool checked = false) const;
 
 private:
-    void reconfigure();
-    void createButtons();
-    void recalculateBorders();
-    void updateResizeBorders();
-    void updateTitleBar();
-    void updateButtonsGeometryDelayed();
+    void updateGeometry();
     void updateButtonsGeometry();
     void updateShadow();
-
-    void updateBtnPixmap();
-    QPixmap fromSvgToPixmap(const QString &file, const QSize &size);
+    void reloadTheme();
+    void updateButtonPixmaps();
+    void paintCaption(QPainter *painter) const;
 
     int titleBarHeight() const;
-
     QColor titleBarBackgroundColor() const;
     QColor titleBarForegroundColor() const;
+    QString pixmapPath(KDecoration3::DecorationButtonType type, bool checked) const;
+    QPixmap loadPixmap(const QString &path) const;
 
-    bool radiusAvailable() const;
-    bool isMaximized() const;
+    KDecoration3::DecorationButtonGroup *m_leftButtons = nullptr;
+    KDecoration3::DecorationButtonGroup *m_rightButtons = nullptr;
 
-    void paintFrameBackground(QPainter *painter, const QRect &repaintRegion) const;
-    void paintCaption(QPainter *painter, const QRect &repaintRegion) const;
-    void paintButtons(QPainter *painter, const QRect &repaintRegion) const;
-
-    KDecoration2::DecorationButtonGroup *m_leftButtons;
-    KDecoration2::DecorationButtonGroup *m_rightButtons;
-
-    friend class CloseButton;
-    friend class MaximizeButton;
-    friend class MinimizeButton;
-
-private:
+    qreal m_devicePixelRatio = 1.0;
+    bool m_darkMode = false;
     int m_titleBarHeight = 30;
     int m_frameRadius = 11;
-    qreal m_devicePixelRatio = 1.0;
-    QColor m_titleBarBgColor = QColor(255, 255, 255, 255);
-    QColor m_titleBarFgColor = QColor(56, 56, 56, 255);
-    QColor m_unfocusedFgColor = QColor(127, 127, 127, 255);
-
+    QColor m_titleBarBgColor = QColor(255, 255, 255);
+    QColor m_titleBarFgColor = QColor(56, 56, 56);
+    QColor m_unfocusedFgColor = QColor(127, 127, 127);
     QColor m_titleBarBgDarkColor = QColor(44, 44, 45);
     QColor m_titleBarFgDarkColor = QColor(202, 203, 206);
     QColor m_unfocusedFgDarkColor = QColor(112, 112, 112);
 
-    QSettings *m_settings;
-    QString m_settingsFile;
-    QFileSystemWatcher *m_fileWatcher;
-
+    QSettings m_themeSettings;
+    QString m_themeSettingsFile;
+    QFileSystemWatcher m_themeWatcher;
     QPixmap m_closeBtnPixmap;
     QPixmap m_maximizeBtnPixmap;
     QPixmap m_minimizeBtnPixmap;
     QPixmap m_restoreBtnPixmap;
-
-    X11Shadow *m_x11Shadow;
 };
 
 }
