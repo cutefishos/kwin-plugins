@@ -10,10 +10,12 @@
 "use strict";
 
 var blocklist = [
-    // The logout screen has to be animated only by the logout effect.
+    // Ignore the black background behind the lock screen.
     "ksmserver ksmserver",
+    // The logout screen has to be animated only by the logout effect.
     "ksmserver-logout-greeter ksmserver-logout-greeter",
-
+    // The lock screen isn't a popup window.
+    "kscreenlocker_greet kscreenlocker_greet",
     // KDE Plasma splash screen has to be animated only by the login effect.
     "ksplashqml ksplashqml"
 ];
@@ -65,7 +67,8 @@ function isPopupWindow(window) {
     // was doing that.
     if (window.dock || window.splash || window.toolbar
             || window.notification || window.onScreenDisplay
-            || window.criticalNotification) {
+            || window.criticalNotification
+            || window.appletPopup) {
         return true;
     }
 
@@ -87,7 +90,7 @@ var cutefishPopupsEffect = {
         if (!window.visible) {
             return;
         }
-        if (!effect.grab(window, Effect.WindowAddedGrabRole)) {
+        if (effect.isGrabbed(window, Effect.WindowAddedGrabRole)) {
             return;
         }
         window.fadeInAnimation = animate({
@@ -106,10 +109,10 @@ var cutefishPopupsEffect = {
         if (!isPopupWindow(window)) {
             return;
         }
-        if (!window.visible) {
+        if (!window.visible || window.skipsCloseAnimation) {
             return;
         }
-        if (!effect.grab(window, Effect.WindowClosedGrabRole)) {
+        if (effect.isGrabbed(window, Effect.WindowClosedGrabRole)) {
             return;
         }
         window.fadeOutAnimation = animate({

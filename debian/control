@@ -5,29 +5,20 @@ Maintainer: CutefishOS <cutefishos@foxmail.com>
 Build-Depends: cmake,
                debhelper (>= 9),
                extra-cmake-modules,
-               kwin-dev,
-               libxcb-util-dev,
-               libxcb-util0-dev,
-               libkf5windowsystem-dev,
-               libkf5globalaccel-dev,
-               libkf5config-dev,
-               libkdecorations2-dev,
-               libkf5coreaddons-dev,
-               libqt5opengl5-dev,
-               libqt5x11extras5-dev,
-               qtbase5-dev,
-               qtbase5-private-dev,
-               qtdeclarative5-dev,
-               qtquickcontrols2-5-dev,
-               qttools5-dev,
-               qttools5-dev-tools
+               libkdecorations3-dev,
+               libkf6coreaddons-dev,
+               qt6-base-dev
 Standards-Version: 4.5.0
 Homepage: https://cutefishos.com
 
 Package: cutefish-kwin-plugins
 Architecture: any
-Depends: qml-module-qtquick-controls2,
-         qml-module-qtquick2,
+Depends: fishui,
+         kwin-common,
+         qml6-module-qtquick,
+         qml6-module-qtquick-controls,
+         qml6-module-qtquick-layouts,
+         qml6-module-qtquick-window,
          ${misc:Depends},
          ${shlibs:Depends}
 Description: CutefishOS KWin Plugins

@@ -20,6 +20,13 @@ set(decoration3_SRCS
 
 add_library(cutefishdecoration3 MODULE ${decoration3_SRCS})
 
+# KWin looks the decoration plugin up by file name (the "library" key of the
+# [org.kde.kdecoration2] group in kwinrc), so the file has to be named after the
+# plugin id.
+set_target_properties(cutefishdecoration3 PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "org.cutefish.decoration")
+
 target_link_libraries(cutefishdecoration3
     PRIVATE
         Qt6::Core

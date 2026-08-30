@@ -1,20 +1,19 @@
 {
+    "KPackageStructure": "KWin/Script",
     "KPlugin": {
-        "Name": "CutefishOS Launcher",
-        "Description": "Force the cutefish-launcher window to fill the screen area",
-        "Icon": "preferences-system-windows-script-test",
         "Authors": [
             {
-                "Name": "revenmartin",
-                "Email": "revenmartin@gmail.com"
+                "Email": "revenmartin@gmail.com",
+                "Name": "revenmartin"
             }
         ],
-        "EnabledByDefault": false,
+        "Description": "Force the cutefish-launcher window to fill the screen area",
+        "EnabledByDefault": true,
+        "Icon": "preferences-system-windows-script-test",
         "Id": "cutefishlauncher",
-        "Version": "0.1",
-        "License": "GPL-3.0-or-later"
+        "License": "GPL-3.0-or-later",
+        "Name": "CutefishOS Launcher",
+        "Version": "0.1"
     },
-    "X-Plasma-API": "javascript",
-    "X-Plasma-MainScript": "code/main.js",
-    "KPackageStructure": "KWin/Script"
+    "X-Plasma-API": "javascript"
 }

@@ -10,9 +10,14 @@
 #include <KPluginFactory>
 #include <KDecoration3/DecoratedWindow>
 #include <KDecoration3/DecorationSettings>
+#include <KDecoration3/DecorationShadow>
 
 #include <QFontMetricsF>
+#include <QImageReader>
 #include <QPainter>
+#include <QRadialGradient>
+
+#include <cmath>
 
 K_PLUGIN_FACTORY_WITH_JSON(CutefishDecorationFactory, "cutefishos.json",
                            registerPlugin<Cutefish::Decoration>();)
@@ -20,10 +25,23 @@ K_PLUGIN_FACTORY_WITH_JSON(CutefishDecorationFactory, "cutefishos.json",
 namespace Cutefish
 {
 
+static int s_decorationCount = 0;
+static int s_shadowRadius = -1;
+static std::shared_ptr<KDecoration3::DecorationShadow> s_shadow;
+
 Decoration::Decoration(QObject *parent, const QVariantList &args)
     : KDecoration3::Decoration(parent, args)
     , m_themeSettings(QSettings::UserScope, QStringLiteral("cutefishos"), QStringLiteral("theme"))
 {
+    ++s_decorationCount;
+}
+
+Decoration::~Decoration()
+{
+    if (--s_decorationCount == 0) {
+        s_shadow.reset();
+        s_shadowRadius = -1;
+    }
 }
 
 bool Decoration::init()
@@ -32,14 +50,8 @@ bool Decoration::init()
         return false;
     }
 
-    m_devicePixelRatio = m_themeSettings.value(QStringLiteral("PixelRatio"), 1.0).toReal();
-    if (m_devicePixelRatio <= 0) {
-        m_devicePixelRatio = 1.0;
-    }
-    m_frameRadius = qRound(11 * m_devicePixelRatio);
-
-    updateColors();
-    updateButtonPixmaps();
+    m_themeSettingsFile = m_themeSettings.fileName();
+    reloadTheme();
 
     m_leftButtons = new KDecoration3::DecorationButtonGroup(
         KDecoration3::DecorationButtonGroup::Position::Left, this, &Button::create);
@@ -49,6 +61,11 @@ bool Decoration::init()
     auto window = this->window();
     connect(window, &KDecoration3::DecoratedWindow::captionChanged, this, [this] { update(); });
     connect(window, &KDecoration3::DecoratedWindow::activeChanged, this, [this] { update(); });
+    connect(window, &KDecoration3::DecoratedWindow::shadedChanged, this, [this] {
+        updateGeometry();
+        updateButtonsGeometry();
+        update();
+    });
     connect(window, &KDecoration3::DecoratedWindow::maximizedChanged, this, [this] {
         updateGeometry();
         updateButtonsGeometry();
@@ -69,10 +86,31 @@ bool Decoration::init()
             updateButtonsGeometry();
             update();
         });
+        connect(settings().get(), &KDecoration3::DecorationSettings::decorationButtonsLeftChanged, this,
+                [this] { updateButtonsGeometry(); });
+        connect(settings().get(), &KDecoration3::DecorationSettings::decorationButtonsRightChanged, this,
+                [this] { updateButtonsGeometry(); });
         connect(settings().get(), &KDecoration3::DecorationSettings::reconfigured, this, [this] {
+            reloadTheme();
             updateGeometry();
             updateButtonsGeometry();
             update();
+        });
+    }
+
+    // Follow the CutefishOS theme settings (dark mode, scaling) while the window is open.
+    if (!m_themeSettingsFile.isEmpty()) {
+        m_themeWatcher.addPath(m_themeSettingsFile);
+        connect(&m_themeWatcher, &QFileSystemWatcher::fileChanged, this, [this] {
+            reloadTheme();
+            updateGeometry();
+            updateButtonsGeometry();
+            update();
+
+            // Editors replace the file instead of writing in place, which drops the watch.
+            if (!m_themeWatcher.files().contains(m_themeSettingsFile)) {
+                m_themeWatcher.addPath(m_themeSettingsFile);
+            }
         });
     }
 
@@ -83,30 +121,33 @@ bool Decoration::init()
 
 void Decoration::paint(QPainter *painter, const QRectF &repaintArea)
 {
-    Q_UNUSED(repaintArea)
-
     if (!window()) {
         return;
     }
 
-    painter->save();
-    painter->setRenderHint(QPainter::Antialiasing);
-    painter->setPen(Qt::NoPen);
-    painter->setBrush(titleBarBackgroundColor());
+    if (!window()->isShaded()) {
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(titleBarBackgroundColor());
 
-    if (!window()->isShaded() && !window()->isMaximized()) {
-        painter->drawRoundedRect(rect(), m_frameRadius, m_frameRadius);
-    } else {
-        painter->drawRect(rect());
-    }
-    painter->restore();
+        const bool rounded = !window()->isMaximized()
+            && (!settings() || settings()->isAlphaChannelSupported());
+        if (rounded) {
+            painter->drawRoundedRect(rect(), m_frameRadius, m_frameRadius);
+        } else {
+            painter->drawRect(rect());
+        }
+        painter->restore();
 
-    if (m_leftButtons) {
-        m_leftButtons->paint(painter, repaintArea);
+        if (m_leftButtons) {
+            m_leftButtons->paint(painter, repaintArea);
+        }
+        if (m_rightButtons) {
+            m_rightButtons->paint(painter, repaintArea);
+        }
     }
-    if (m_rightButtons) {
-        m_rightButtons->paint(painter, repaintArea);
-    }
+
     paintCaption(painter);
 }
 
@@ -141,21 +182,102 @@ void Decoration::updateButtonsGeometry()
     m_rightButtons->setPos(QPointF(size().width() - m_rightButtons->geometry().width() - 2, 0));
 }
 
-void Decoration::updateColors()
+void Decoration::updateShadow()
 {
-    // The theme settings are intentionally read once per decoration. KWin creates a new
-    // decoration when the window/theme is reconfigured, avoiding a dependency on KDE5 APIs.
+    if (s_shadow && s_shadowRadius == m_frameRadius) {
+        setShadow(s_shadow);
+        return;
+    }
+
+    const int shadowSize = 90;
+    const int shadowStrength = 35;
+    const QColor shadowColor = Qt::black;
+    const int shadowOverlap = m_frameRadius;
+    const int shadowOffset = shadowOverlap / 2;
+
+    QImage image(2 * shadowSize, 2 * shadowSize, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+
+    // Gaussian delta function used to fade the shadow out.
+    auto alpha = [](qreal x) { return std::exp(-x * x / 0.15); };
+    auto gradientStopColor = [](QColor color, int alpha) {
+        color.setAlpha(alpha);
+        return color;
+    };
+
+    QRadialGradient radialGradient(shadowSize, shadowSize, shadowSize);
+    for (int i = 0; i < 10; ++i) {
+        const qreal x(qreal(i) / 9);
+        radialGradient.setColorAt(x, gradientStopColor(shadowColor, alpha(x) * shadowStrength));
+    }
+    radialGradient.setColorAt(1, gradientStopColor(shadowColor, 0));
+
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.fillRect(image.rect(), radialGradient);
+
+    const QRectF innerRect(shadowSize - shadowOverlap,
+                           shadowSize - shadowOffset - shadowOverlap,
+                           2 * shadowOverlap,
+                           shadowOffset + 2 * shadowOverlap);
+
+    // Contrast pixel around the window.
+    painter.setPen(gradientStopColor(shadowColor, shadowStrength * 0.5));
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRoundedRect(innerRect, -0.5 + m_frameRadius, -0.5 + m_frameRadius);
+
+    // Mask out the area covered by the window itself.
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(Qt::black);
+    painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
+    painter.drawRoundedRect(innerRect, 0.5 + m_frameRadius, 0.5 + m_frameRadius);
+    painter.end();
+
+    s_shadow = std::make_shared<KDecoration3::DecorationShadow>();
+    s_shadow->setPadding(QMarginsF(shadowSize - shadowOverlap,
+                                   shadowSize - shadowOffset - shadowOverlap,
+                                   shadowSize - shadowOverlap,
+                                   shadowSize - shadowOverlap));
+    s_shadow->setInnerShadowRect(QRectF(shadowSize, shadowSize, 1, 1));
+    s_shadow->setShadow(image);
+    s_shadowRadius = m_frameRadius;
+
+    setShadow(s_shadow);
+}
+
+void Decoration::reloadTheme()
+{
+    m_themeSettings.sync();
+
+    m_devicePixelRatio = m_themeSettings.value(QStringLiteral("PixelRatio"), 1.0).toReal();
+    if (m_devicePixelRatio <= 0) {
+        m_devicePixelRatio = 1.0;
+    }
+    m_darkMode = m_themeSettings.value(QStringLiteral("DarkMode"), false).toBool();
+    m_frameRadius = qRound(11 * m_devicePixelRatio);
+
+    updateButtonPixmaps();
+    updateShadow();
 }
 
 void Decoration::updateButtonPixmaps()
 {
-    const auto load = [](const QString &path) {
-        return QPixmap(path);
-    };
-    m_closeBtnPixmap = load(pixmapPath(KDecoration3::DecorationButtonType::Close, false));
-    m_maximizeBtnPixmap = load(pixmapPath(KDecoration3::DecorationButtonType::Maximize, false));
-    m_minimizeBtnPixmap = load(pixmapPath(KDecoration3::DecorationButtonType::Minimize, false));
-    m_restoreBtnPixmap = load(pixmapPath(KDecoration3::DecorationButtonType::Maximize, true));
+    m_closeBtnPixmap = loadPixmap(pixmapPath(KDecoration3::DecorationButtonType::Close, false));
+    m_maximizeBtnPixmap = loadPixmap(pixmapPath(KDecoration3::DecorationButtonType::Maximize, false));
+    m_minimizeBtnPixmap = loadPixmap(pixmapPath(KDecoration3::DecorationButtonType::Minimize, false));
+    m_restoreBtnPixmap = loadPixmap(pixmapPath(KDecoration3::DecorationButtonType::Maximize, true));
+}
+
+QPixmap Decoration::loadPixmap(const QString &path) const
+{
+    QImageReader reader(path);
+    if (!reader.canRead()) {
+        return {};
+    }
+
+    // The icons are SVGs, render them at the size the buttons are painted with.
+    reader.setScaledSize(QSize(24, 24) * m_devicePixelRatio);
+    return QPixmap::fromImage(reader.read());
 }
 
 QPixmap Decoration::buttonPixmap(KDecoration3::DecorationButtonType type, bool checked) const
@@ -195,11 +317,6 @@ QString Decoration::pixmapPath(KDecoration3::DecorationButtonType type, bool che
 int Decoration::titleBarHeight() const
 {
     return qMax(1, qRound(m_titleBarHeight * m_devicePixelRatio));
-}
-
-bool Decoration::darkMode() const
-{
-    return m_themeSettings.value(QStringLiteral("DarkMode"), false).toBool();
 }
 
 QColor Decoration::titleBarBackgroundColor() const

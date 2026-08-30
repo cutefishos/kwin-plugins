@@ -1,4 +1,5 @@
 {
+    "KPackageStructure": "KWin/Effect",
     "KPlugin": {
         "Authors": [
             {
@@ -7,27 +8,15 @@
             }
         ],
         "Category": "Window Open/Close Animation",
-        "Dependencies": [
-        ],
         "Description": "Make windows smoothly scale in and out when they are shown or hidden",
-        "EnabledByDefault": false,
+        "EnabledByDefault": true,
         "Icon": "preferences-system-windows-effect-scale",
         "Id": "cutefish_scale",
         "License": "GPL",
-        "Name": "Scale",
-        "ServiceTypes": [
-            "KWin/Effect",
-            "KCModule"
-        ],
+        "Name": "CutefishOS Scale",
         "Version": "1"
     },
-    "X-KDE-Ordering": "60",
-    "X-KDE-ParentComponents": [
-        "cutefish_scale"
-    ],
-    "X-KDE-PluginKeyword": "cutefish_scale",
-    "X-KWin-Config-TranslationDomain": "kwin_effects",
+    "X-KDE-Ordering": 60,
     "X-KWin-Exclusive-Category": "toplevel-open-close-animation",
-    "X-Plasma-API": "javascript",
-    "X-Plasma-MainScript": "code/main.js"
+    "X-Plasma-API": "javascript"
 }

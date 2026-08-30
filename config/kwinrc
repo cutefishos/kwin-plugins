@@ -3,16 +3,20 @@ OpenGLIsUnsafe=false
 
 [Plugins]
 blurEnabled=true
-kwin4_effect_fadingpopupsEnabled=false
-kwin4_effect_dialogparentEnabled=true
+dialogparentEnabled=true
 
-kwin4_effect_fadeEnabled=false
-kwin4_effect_scaleEnabled=false
-kwin4_effect_grayscaleEnabled = false
+# The CutefishOS animations replace the KWin ones with the same purpose.
+cutefish_popupsEnabled=true
+cutefish_scaleEnabled=true
+cutefish_squashEnabled=true
 
-kwin4_effect_squashEnabled=false
-kwin4_effect_translucencyEnabled=false
+fadingpopupsEnabled=false
+fadeEnabled=false
+scaleEnabled=false
+squashEnabled=false
+glideEnabled=false
 magiclampEnabled=false
+translucencyEnabled=false
 
 [Effect-Blur]
 BlurStrength=15
@@ -23,14 +27,6 @@ FocusStealingPreventionLevel=0
 HideUtilityWindowsForInactive=false
 BorderlessMaximizedWindows=false
 Placement=Centered
-
-[Effect-FlipSwitch]
-TabBox=false
-TabBoxAlternative=false
-
-[Effect-CoverSwitch]
-TabBox=false
-TabBoxAlternative=false
 
 [Effect-SlidingPopups]
 SlideInTime=250
@@ -43,7 +39,7 @@ BorderActivate=9
 BorderAlternativeActivate=9
 DesktopMode=1
 HighlightWindows=true
-LayoutName=present_windows
+LayoutName=cutefish_thumbnail
 MinimizedMode=0
 MultiScreenMode=0
 ShowDesktopMode=1
@@ -59,8 +55,10 @@ Left=None
 Right=None
 Top=None
 
+# KWin 6 still reads the decoration settings from the KDecoration2 group.
 [org.kde.kdecoration2]
 BorderSize=Normal
 ButtonsOnLeft=
 ButtonsOnRight=HIAX
+library=org.cutefish.decoration
 theme=

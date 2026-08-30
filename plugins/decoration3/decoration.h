@@ -9,6 +9,7 @@
 #include <KDecoration3/Decoration>
 #include <KDecoration3/DecorationButtonGroup>
 
+#include <QFileSystemWatcher>
 #include <QPixmap>
 #include <QSettings>
 
@@ -21,19 +22,20 @@ class Decoration : public KDecoration3::Decoration
 
 public:
     explicit Decoration(QObject *parent = nullptr, const QVariantList &args = {});
-    ~Decoration() override = default;
+    ~Decoration() override;
 
     bool init() override;
     void paint(QPainter *painter, const QRectF &repaintArea) override;
 
-    bool darkMode() const;
+    bool darkMode() const { return m_darkMode; }
     qreal devicePixelRatio() const { return m_devicePixelRatio; }
     QPixmap buttonPixmap(KDecoration3::DecorationButtonType type, bool checked = false) const;
 
 private:
     void updateGeometry();
     void updateButtonsGeometry();
-    void updateColors();
+    void updateShadow();
+    void reloadTheme();
     void updateButtonPixmaps();
     void paintCaption(QPainter *painter) const;
 
@@ -41,11 +43,13 @@ private:
     QColor titleBarBackgroundColor() const;
     QColor titleBarForegroundColor() const;
     QString pixmapPath(KDecoration3::DecorationButtonType type, bool checked) const;
+    QPixmap loadPixmap(const QString &path) const;
 
     KDecoration3::DecorationButtonGroup *m_leftButtons = nullptr;
     KDecoration3::DecorationButtonGroup *m_rightButtons = nullptr;
 
     qreal m_devicePixelRatio = 1.0;
+    bool m_darkMode = false;
     int m_titleBarHeight = 30;
     int m_frameRadius = 11;
     QColor m_titleBarBgColor = QColor(255, 255, 255);
@@ -56,6 +60,8 @@ private:
     QColor m_unfocusedFgDarkColor = QColor(112, 112, 112);
 
     QSettings m_themeSettings;
+    QString m_themeSettingsFile;
+    QFileSystemWatcher m_themeWatcher;
     QPixmap m_closeBtnPixmap;
     QPixmap m_maximizeBtnPixmap;
     QPixmap m_minimizeBtnPixmap;

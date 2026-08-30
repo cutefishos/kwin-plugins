@@ -1,34 +1,39 @@
-import QtQuick 2.12
-import QtQuick.Window 2.12
-import QtQuick.Controls 2.12
-import QtQuick.Layouts 1.12
+/*
+    SPDX-FileCopyrightText: 2020 Chris Holland <zrenfire@gmail.com>
+    SPDX-FileCopyrightText: 2021 CutefishOS Team
 
-import org.kde.plasma.core 2.0 as PlasmaCore
-import org.kde.plasma.components 2.0 as PlasmaComponents
-import org.kde.kquickcontrolsaddons 2.0
-import org.kde.kwin 2.0 as KWin
+    SPDX-License-Identifier: GPL-2.0-or-later
+*/
+
+import QtQuick
+import QtQuick.Window
+import QtQuick.Controls
+import QtQuick.Layouts
+
+import org.kde.kwin 3.0 as KWin
 
 import FishUI 1.0 as FishUI
 
 // https://techbase.kde.org/Development/Tutorials/KWin/WindowSwitcher
 
-KWin.Switcher {
+KWin.TabBoxSwitcher {
     id: tabBox
-    currentIndex: thumbnailGridView.currentIndex
 
     Window {
         id: dialog
+
         visible: tabBox.visible
         flags: Qt.BypassWindowManagerHint | Qt.FramelessWindowHint
         color: "transparent"
 
-        property int maxWidth: tabBox.screenGeometry.width * 0.95
-        property int maxHeight: tabBox.screenGeometry.height * 0.7
-        property int optimalWidth: thumbnailGridView.cellWidth * gridColumns
-        property int optimalHeight: thumbnailGridView.cellHeight * gridRows
-        property int maxGridColumnsByWidth: Math.floor(maxWidth / thumbnailGridView.cellWidth)
+        readonly property int maxWidth: tabBox.screenGeometry.width * 0.95
+        readonly property int maxHeight: tabBox.screenGeometry.height * 0.7
+        readonly property int maxGridColumnsByWidth: Math.max(1, Math.floor(maxWidth / thumbnailGridView.cellWidth))
+
         property int gridColumns: maxGridColumnsByWidth
-        property int gridRows: Math.ceil(thumbnailGridView.count / gridColumns)
+        readonly property int gridRows: Math.ceil(thumbnailGridView.count / gridColumns)
+        readonly property int optimalWidth: thumbnailGridView.cellWidth * gridColumns
+        readonly property int optimalHeight: thumbnailGridView.cellHeight * gridRows
 
         width: Math.min(Math.max(thumbnailGridView.cellWidth, optimalWidth), maxWidth)
         height: Math.min(Math.max(thumbnailGridView.cellHeight, optimalHeight), maxHeight)
@@ -58,7 +63,7 @@ KWin.Switcher {
             anchors.fill: parent
             radius: windowHelper.compositing ? 14 : 0
             color: FishUI.Theme.backgroundColor
-            opacity: windowHelper.compositing ? FishUI.Theme.darkMode ? 0.3 : 0.4 : 1.0
+            opacity: windowHelper.compositing ? (FishUI.Theme.darkMode ? 0.3 : 0.4) : 1.0
 
             border.color: FishUI.Theme.darkMode ? "#686868" : "#D9D9D9"
             border.width: windowHelper.compositing ? 0 : 1
@@ -76,15 +81,17 @@ KWin.Switcher {
             id: dialogMainItem
             anchors.fill: parent
 
-            property real screenFactor: tabBox.screenGeometry.width / tabBox.screenGeometry.height
-
-            property bool canStretchX: false
-            property bool canStretchY: false
+            readonly property real screenFactor: tabBox.screenGeometry.width / tabBox.screenGeometry.height
 
             clip: true
 
-            // simple greedy algorithm
+            // Simple greedy algorithm
             function calculateColumnCount() {
+                if (thumbnailGridView.count === 0) {
+                    dialog.gridColumns = 1;
+                    return;
+                }
+
                 // respect screenGeometry
                 var c = Math.min(thumbnailGridView.count, dialog.maxGridColumnsByWidth);
 
@@ -98,13 +105,13 @@ KWin.Switcher {
                 dialog.gridColumns = columnCountRecursion(c, c, c - residue);
             }
 
-            // step for greedy algorithm
+            // Step for the greedy algorithm
             function columnCountRecursion(prevC, prevBestC, prevDiff) {
                 var c = prevC - 1;
 
                 // don't increase vertical extent more than horizontal
                 // and don't exceed maxHeight
-                if (prevC * prevC <= thumbnailGridView.count + prevDiff ||
+                if (c < 1 || prevC * prevC <= thumbnailGridView.count + prevDiff ||
                         dialog.maxHeight < Math.ceil(thumbnailGridView.count / c) * thumbnailGridView.cellHeight) {
                     return prevBestC;
                 }
@@ -116,40 +123,31 @@ KWin.Switcher {
                 // empty slots
                 var diff = c - residue;
 
-                // compare it to previous count of empty slots
+                // compare it to the previous count of empty slots
                 if (diff < prevDiff) {
                     return columnCountRecursion(c, c, diff);
-                } else if (diff == prevDiff) {
-                    // when it's the same try again, we'll stop early enough thanks to the landscape mode condition
-                    return columnCountRecursion(c, prevBestC, diff);
                 }
-                // when we've found a local minimum choose this one (greedy)
+                // when it's the same or worse keep the previous best (greedy)
                 return columnCountRecursion(c, prevBestC, diff);
-            }
-
-            property bool mouseEnabled: false
-            MouseArea {
-                id: mouseDetector
-                anchors.fill: parent
-                hoverEnabled: true
-                onPositionChanged: dialogMainItem.mouseEnabled = true
             }
 
             GridView {
                 id: thumbnailGridView
-                model: tabBox.model
-                // interactive: false // Disable drag to scroll
-
                 anchors.fill: parent
 
-                property int captionRowHeight: 22
-                property int thumbnailWidth: 300
-                property int thumbnailHeight: thumbnailWidth * (1.0 / dialogMainItem.screenFactor)
-                cellWidth: thumbnailWidth
-                cellHeight: captionRowHeight + thumbnailHeight
-                height: cellHeight
+                model: tabBox.model
+                currentIndex: tabBox.currentIndex
 
                 clip: true
+                keyNavigationWraps: true
+                highlightMoveDuration: 0
+
+                readonly property int iconSize: 48
+                readonly property int captionRowHeight: 22
+                readonly property int thumbnailWidth: 300
+                readonly property int thumbnailHeight: thumbnailWidth * (1.0 / dialogMainItem.screenFactor)
+                cellWidth: thumbnailWidth
+                cellHeight: captionRowHeight + thumbnailHeight
 
                 // allow expansion on increasing count
                 property int highCount: 0
@@ -160,53 +158,62 @@ KWin.Switcher {
                     }
                 }
 
-                delegate: Item {
-                    property bool isCurrent: thumbnailGridView.currentIndex === index
+                delegate: MouseArea {
+                    id: thumbnailGridItem
 
                     width: thumbnailGridView.cellWidth
                     height: thumbnailGridView.cellHeight
+                    hoverEnabled: true
 
-                    MouseArea {
-                        anchors.fill: parent
-                        // hoverEnabled: dialogMainItem.mouseEnabled
-                        // onEntered: parent.hover()
-                        onClicked: {
-                            parent.select()
-                            // dialog.close() // Doesn't end the effects until you release Alt.
-                        }
-                    }
-                    function select() {
+                    readonly property bool isCurrent: thumbnailGridView.currentIndex === index
+
+                    onClicked: {
                         thumbnailGridView.currentIndex = index;
-                        thumbnailGridView.currentIndexChanged(thumbnailGridView.currentIndex);
+                        tabBox.currentIndex = index;
                     }
 
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 16
+                        spacing: 4
 
-                        QIconItem {
-                            id: iconItem
-                            // source: model.icon
-                            icon: model.icon
-                            width: parent.height * 0.5
-                            height: parent.height * 0.5
-                            state: index == thumbnailGridView.currentIndex ? QIconItem.ActiveState : QIconItem.DefaultState
-                            Layout.alignment: Qt.AlignHCenter
+                        // KWin.WindowThumbnail needs a container, otherwise it is
+                        // drawn with the size of the parent layout.
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+
+                            KWin.WindowThumbnail {
+                                anchors.fill: parent
+                                wId: windowId
+                            }
+
+                            FishUI.IconItem {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.verticalCenter: parent.bottom
+                                anchors.verticalCenterOffset: -Math.round(thumbnailGridView.iconSize / 4)
+                                width: thumbnailGridView.iconSize
+                                height: thumbnailGridView.iconSize
+                                source: model.icon
+                            }
                         }
 
                         Label {
-                            text: model.caption
                             Layout.fillWidth: true
+                            Layout.preferredHeight: thumbnailGridView.captionRowHeight
+                            text: model.caption
                             elide: Text.ElideRight
+                            textFormat: Text.PlainText
                             horizontalAlignment: Text.AlignHCenter
-                            color: isCurrent ? FishUI.Theme.highlightedTextColor : FishUI.Theme.textColor
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: thumbnailGridItem.isCurrent
+                            color: thumbnailGridItem.isCurrent ? FishUI.Theme.highlightedTextColor
+                                                               : FishUI.Theme.textColor
                         }
                     }
                 } // GridView.delegate
 
                 highlight: Item {
-                    id: highlightItem
-
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: FishUI.Units.largeSpacing
@@ -216,18 +223,17 @@ KWin.Switcher {
                     }
                 }
 
+                onCurrentIndexChanged: tabBox.currentIndex = thumbnailGridView.currentIndex
+
                 Connections {
                     target: tabBox
                     function onCurrentIndexChanged() {
-                        thumbnailGridView.currentIndex = tabBox.currentIndex
+                        thumbnailGridView.currentIndex = tabBox.currentIndex;
                     }
                 }
             } // GridView
 
-            // This doesn't work, nor does keyboard input work on any other tabbox skin (KDE 5.7.4)
-            // It does work in the preview however.
-            Keys.onPressed: {
-                console.log('keyPressed', event.key)
+            Keys.onPressed: function (event) {
                 if (event.key == Qt.Key_Left) {
                     thumbnailGridView.moveCurrentIndexLeft();
                 } else if (event.key == Qt.Key_Right) {
@@ -240,8 +246,8 @@ KWin.Switcher {
                     return;
                 }
 
-                thumbnailGridView.currentIndexChanged(thumbnailGridView.currentIndex);
+                tabBox.currentIndex = thumbnailGridView.currentIndex;
             }
-        } // Dialog.mainItem
-    } // Dialog
+        } // dialogMainItem
+    } // Window
 }

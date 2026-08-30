@@ -1,4 +1,5 @@
 {
+    "KPackageStructure": "KWin/Effect",
     "KPlugin": {
         "Authors": [
             {
@@ -7,21 +8,15 @@
             }
         ],
         "Category": "Appearance",
-        "EnabledByDefault": false,
+        "Description": "Squash windows when they are minimized",
+        "EnabledByDefault": true,
         "Icon": "preferences-system-windows-effect-squash",
         "Id": "cutefish_squash",
         "License": "GPL",
-        "Name": "CutefishSquash",
-        "ServiceTypes": [
-            "KWin/Effect"
-        ],
-        "Version": "1",
-        "Website": ""
+        "Name": "CutefishOS Squash",
+        "Version": "1"
     },
-    "X-KDE-Ordering": "60",
-    "X-KDE-ParentApp": "",
+    "X-KDE-Ordering": 60,
     "X-KWin-Exclusive-Category": "minimize",
-    "X-KWin-Video-Url": "https://files.kde.org/plasma/kwin/effect-videos/minimize.ogv",
-    "X-Plasma-API": "javascript",
-    "X-Plasma-MainScript": "code/main.js"
+    "X-Plasma-API": "javascript"
 }

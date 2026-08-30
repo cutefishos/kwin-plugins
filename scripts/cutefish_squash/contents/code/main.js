@@ -146,10 +146,24 @@ var squashEffect = {
             ]
         });
     },
+    slotWindowAdded: function (window) {
+        // KWin 6 no longer has effects.windowMinimized/windowUnminimized,
+        // every window reports its own state changes instead.
+        window.minimizedChanged.connect(() => {
+            if (window.minimized) {
+                squashEffect.slotWindowMinimized(window);
+            } else {
+                squashEffect.slotWindowUnminimized(window);
+            }
+        });
+    },
     init: function () {
         effect.configChanged.connect(squashEffect.loadConfig);
-        effects.windowMinimized.connect(squashEffect.slotWindowMinimized);
-        effects.windowUnminimized.connect(squashEffect.slotWindowUnminimized);
+
+        effects.windowAdded.connect(squashEffect.slotWindowAdded);
+        for (const window of effects.stackingOrder) {
+            squashEffect.slotWindowAdded(window);
+        }
     }
 };
 
