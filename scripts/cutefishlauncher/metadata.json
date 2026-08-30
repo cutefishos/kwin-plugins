@@ -9,7 +9,7 @@
                 "Email": "revenmartin@gmail.com"
             }
         ],
-        "EnabledByDefault": true,
+        "EnabledByDefault": false,
         "Id": "cutefishlauncher",
         "Version": "0.1",
         "License": "GPL-3.0-or-later"

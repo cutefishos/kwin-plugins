@@ -11,7 +11,7 @@
         "ServiceTypes": [
             "KWin/Effect"
         ],
-        "EnabledByDefault": true,
+        "EnabledByDefault": false,
         "Id": "cutefish_popups",
         "Version": "1.0"
     },

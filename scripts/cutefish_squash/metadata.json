@@ -7,7 +7,7 @@
             }
         ],
         "Category": "Appearance",
-        "EnabledByDefault": true,
+        "EnabledByDefault": false,
         "Icon": "preferences-system-windows-effect-squash",
         "Id": "cutefish_squash",
         "License": "GPL",

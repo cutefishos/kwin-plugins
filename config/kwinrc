@@ -14,9 +14,6 @@ kwin4_effect_squashEnabled=false
 kwin4_effect_translucencyEnabled=false
 magiclampEnabled=false
 
-cutefish_scaleEnabled = true
-
-
 [Effect-Blur]
 BlurStrength=15
 NoiseStrength=0
@@ -46,7 +43,7 @@ BorderActivate=9
 BorderAlternativeActivate=9
 DesktopMode=1
 HighlightWindows=true
-LayoutName=cutefish_thumbnail
+LayoutName=present_windows
 MinimizedMode=0
 MultiScreenMode=0
 ShowDesktopMode=1
@@ -66,5 +63,4 @@ Top=None
 BorderSize=Normal
 ButtonsOnLeft=
 ButtonsOnRight=HIAX
-library=org.cutefish.decoration
 theme=
