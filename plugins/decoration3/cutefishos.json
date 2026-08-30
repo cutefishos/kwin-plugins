@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Description": "CutefishOS window decoration for KDE Plasma 6",
+        "EnabledByDefault": true,
+        "Id": "org.cutefish.decoration",
+        "Name": "CutefishOS Window Frame",
+        "ServiceTypes": [
+            "org.kde.kdecoration3"
+        ],
+        "Version": "1.0"
+    },
+    "org.kde.kdecoration3": {
+        "blur": false,
+        "recommended": true,
+        "styles": [
+            "titled"
+        ]
+    }
+}

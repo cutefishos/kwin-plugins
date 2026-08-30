@@ -1,0 +1,20 @@
+{
+    "KPlugin": {
+        "Name": "CutefishOS Launcher",
+        "Description": "Force the cutefish-launcher window to fill the screen area",
+        "Icon": "preferences-system-windows-script-test",
+        "Authors": [
+            {
+                "Name": "revenmartin",
+                "Email": "revenmartin@gmail.com"
+            }
+        ],
+        "EnabledByDefault": true,
+        "Id": "cutefishlauncher",
+        "Version": "0.1",
+        "License": "GPL-3.0-or-later"
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js",
+    "KPackageStructure": "KWin/Script"
+}

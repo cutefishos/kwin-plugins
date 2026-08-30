@@ -9,14 +9,19 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
+include(GNUInstallDirs)
+
+set(CUTEFISH_KWIN_CONFIG_DIR "/etc/xdg" CACHE PATH "Directory for system KWin configuration")
+set(CUTEFISH_KWIN_DATA_DIR "${CMAKE_INSTALL_DATAROOTDIR}/kwin" CACHE PATH "Directory for KWin scripts and tabbox layouts")
+
 add_subdirectory(plugins)
 
-install(FILES config/kglobalshortcutsrc DESTINATION /etc/xdg)
-install(FILES config/kwinrc DESTINATION /etc/xdg)
-install(FILES config/kwinrulesrc DESTINATION /etc/xdg)
+install(FILES config/kglobalshortcutsrc DESTINATION "${CUTEFISH_KWIN_CONFIG_DIR}")
+install(FILES config/kwinrc DESTINATION "${CUTEFISH_KWIN_CONFIG_DIR}")
+install(FILES config/kwinrulesrc DESTINATION "${CUTEFISH_KWIN_CONFIG_DIR}")
 
-install(DIRECTORY scripts/cutefishlauncher DESTINATION /usr/share/kwin/scripts)
-install(DIRECTORY scripts/cutefish_squash DESTINATION /usr/share/kwin/effects)
-install(DIRECTORY scripts/cutefish_scale DESTINATION /usr/share/kwin/effects)
-install(DIRECTORY scripts/cutefish_popups DESTINATION /usr/share/kwin/effects)
-install(DIRECTORY tabbox/cutefish_thumbnail DESTINATION /usr/share/kwin/tabbox)
+install(DIRECTORY scripts/cutefishlauncher DESTINATION "${CUTEFISH_KWIN_DATA_DIR}/scripts")
+install(DIRECTORY scripts/cutefish_squash DESTINATION "${CUTEFISH_KWIN_DATA_DIR}/effects")
+install(DIRECTORY scripts/cutefish_scale DESTINATION "${CUTEFISH_KWIN_DATA_DIR}/effects")
+install(DIRECTORY scripts/cutefish_popups DESTINATION "${CUTEFISH_KWIN_DATA_DIR}/effects")
+install(DIRECTORY tabbox/cutefish_thumbnail DESTINATION "${CUTEFISH_KWIN_DATA_DIR}/tabbox")
