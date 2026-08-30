@@ -22,8 +22,10 @@ var blocklist = [
     "spectacle spectacle",
     "spectacle org.kde.spectacle",
 
-    "cutefish-launcher cutefish-launcher",
-    "cutefish-statusbar cutefish-statusbar",
+    // The status bar, the dock, the launcher and the desktop are one process
+    // and share this window class. None of them wants a scale animation: they
+    // are panels and overlays, and the launcher brings its own.
+    "cutefish-shell cutefish-shell",
     "cutefish-screenshot cutefish-screenshot"
 ];
 

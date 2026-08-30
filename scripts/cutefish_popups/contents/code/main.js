@@ -17,11 +17,14 @@ var blocklist = [
     // The lock screen isn't a popup window.
     "kscreenlocker_greet kscreenlocker_greet",
     // KDE Plasma splash screen has to be animated only by the login effect.
-    "ksplashqml ksplashqml"
+    "ksplashqml ksplashqml",
+    // The shell's own surfaces: panels, the desktop and the launcher. The
+    // launcher used to be faded in here, back when it was its own process with
+    // its own window class; it animates itself now.
+    "cutefish-shell cutefish-shell"
 ];
 
 var allowlist = [
-    "cutefish-launcher cutefish-launcher",
     "cutefish-screenshot cutefish-screenshot"
 ];
 
