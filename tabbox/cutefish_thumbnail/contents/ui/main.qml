@@ -41,15 +41,11 @@ KWin.TabBoxSwitcher {
         x: tabBox.screenGeometry.x + (tabBox.screenGeometry.width - dialog.width) / 2
         y: tabBox.screenGeometry.y + (tabBox.screenGeometry.height - dialog.height) / 2
 
-        FishUI.WindowHelper {
-            id: windowHelper
-        }
-
         FishUI.WindowBlur {
             view: dialog
             geometry: Qt.rect(dialog.x, dialog.y, dialog.width, dialog.height)
             windowRadius: _background.radius
-            enabled: windowHelper.compositing
+            enabled: true
         }
 
         FishUI.WindowShadow {
@@ -61,12 +57,12 @@ KWin.TabBoxSwitcher {
         Rectangle {
             id: _background
             anchors.fill: parent
-            radius: windowHelper.compositing ? 14 : 0
+            radius: 14
             color: FishUI.Theme.backgroundColor
-            opacity: windowHelper.compositing ? (FishUI.Theme.darkMode ? 0.3 : 0.4) : 1.0
+            opacity: FishUI.Theme.darkMode ? 0.3 : 0.4
 
             border.color: FishUI.Theme.darkMode ? "#686868" : "#D9D9D9"
-            border.width: windowHelper.compositing ? 0 : 1
+            border.width: 0
         }
 
         onVisibleChanged: {
