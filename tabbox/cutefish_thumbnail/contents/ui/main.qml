@@ -50,7 +50,6 @@ KWin.TabBoxSwitcher {
 
         FishUI.WindowShadow {
             view: dialog
-            geometry: Qt.rect(dialog.x, dialog.y, dialog.width, dialog.height)
             radius: _background.radius
         }
 
