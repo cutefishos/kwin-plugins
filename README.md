@@ -9,7 +9,7 @@ CutefishOS. The plugins target KWin 6 (Plasma 6 / KDecoration3).
 | --- | --- |
 | `plugins/decoration` | KDecoration3 window decoration (installed as `org.cutefish.decoration`) |
 | `plugins/roundedwindow` | Rounded corners effect (`cutefish_roundedwindow`) |
-| `scripts/` | JavaScript effects and scripts (`cutefish_scale`, `cutefish_squash`, `cutefish_popups`, `cutefishlauncher`) |
+| `scripts/` | JavaScript effects and scripts (`cutefish_scale`, `cutefish_popups`, `cutefishlauncher`) |
 | `tabbox/` | `cutefish_thumbnail` window switcher layout |
 | `config/` | System-wide KWin defaults installed into `/etc/xdg` |
 

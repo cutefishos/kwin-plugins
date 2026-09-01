@@ -6,14 +6,13 @@ dialogparentEnabled=true
 cutefish_popupsEnabled=true
 cutefish_roundedwindowEnabled=true
 cutefish_scaleEnabled=true
-cutefish_squashEnabled=true
 
 fadingpopupsEnabled=false
 fadeEnabled=false
 scaleEnabled=false
 squashEnabled=false
 glideEnabled=false
-magiclampEnabled=false
+magiclampEnabled=true
 translucencyEnabled=false
 
 [Effect-Blur]

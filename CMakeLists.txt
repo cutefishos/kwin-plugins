@@ -20,7 +20,6 @@ install(FILES config/kglobalshortcutsrc DESTINATION "${CUTEFISH_KWIN_CONFIG_DIR}
 install(FILES config/kwinrc DESTINATION "${CUTEFISH_KWIN_CONFIG_DIR}")
 
 install(DIRECTORY scripts/cutefishlauncher DESTINATION "${CUTEFISH_KWIN_DATA_DIR}/scripts")
-install(DIRECTORY scripts/cutefish_squash DESTINATION "${CUTEFISH_KWIN_DATA_DIR}/effects")
 install(DIRECTORY scripts/cutefish_scale DESTINATION "${CUTEFISH_KWIN_DATA_DIR}/effects")
 install(DIRECTORY scripts/cutefish_popups DESTINATION "${CUTEFISH_KWIN_DATA_DIR}/effects")
 install(DIRECTORY tabbox/cutefish_thumbnail DESTINATION "${CUTEFISH_KWIN_DATA_DIR}/tabbox")
