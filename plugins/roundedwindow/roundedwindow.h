@@ -30,7 +30,7 @@ public:
     static bool supported();
     static bool enabledByDefault();
 
-    void reconfigure(ReconfigureFlags flags) override;
+    int requestedEffectChainPosition() const override { return 99; }
 
     void prePaintWindow(KWin::EffectWindow *window,
                         KWin::WindowPrePaintData &data,
@@ -44,14 +44,14 @@ public:
                     KWin::WindowPaintData &data) override;
 
 private:
-    void handleWindowAdded(KWin::EffectWindow *window);
-    void handleWindowDeleted(KWin::EffectWindow *window);
-    void updateWindow(KWin::EffectWindow *window);
     bool shouldRound(KWin::EffectWindow *window) const;
     bool isMaximized(KWin::EffectWindow *window) const;
     KWin::GLShader *shader();
 
     std::unique_ptr<KWin::GLShader> m_shader;
-    QSet<KWin::EffectWindow *> m_redirected;
+    QSet<KWin::EffectWindow *> m_roundedWindows;
+    QSet<KWin::EffectWindow *> m_closingWindows;
+    QSet<KWin::EffectWindow *> m_maximizingWindows;
+    QSet<KWin::EffectWindow *> m_restoringWindows;
     qreal m_frameRadius = 11;
 };

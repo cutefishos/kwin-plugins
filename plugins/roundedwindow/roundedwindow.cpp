@@ -1,12 +1,14 @@
 #include "roundedwindow.h"
 
+#include <core/output.h>
+#include <core/pixelgrid.h>
+#include <core/renderviewport.h>
 #include <effect/effecthandler.h>
 #include <opengl/glshader.h>
 #include <opengl/glshadermanager.h>
 #include <opengl/openglcontext.h>
 #include <utils/version.h>
 
-#include <QSettings>
 #include <QVector2D>
 #include <QVector4D>
 
@@ -64,7 +66,7 @@ static QByteArray fragmentShaderSource()
               "uniform vec4 modulation;\n"
               "uniform float saturation;\n"
               "\n"
-              // Size of the offscreen texture, in logical pixels.
+              // Size of the offscreen texture, in device pixels.
               "uniform vec2 textureSize;\n"
               // Frame of the window inside the texture (x, y, width, height).
               "uniform vec4 frameRect;\n"
@@ -77,34 +79,126 @@ static QByteArray fragmentShaderSource()
     }
 
     source += "\n"
-              // Signed distance to a rounded rectangle centred on the origin.
-              "float roundedBoxDistance(vec2 point, vec2 halfSize, float r)\n"
+              // Convert a point expressed relative to the window frame back to
+              // the offscreen texture coordinate system. KWin's normalized
+              // GLTexture matrix flips Y.
+              "vec2 framePixelToTex(vec2 framePixel)\n"
               "{\n"
-              "    vec2 q = abs(point) - halfSize + vec2(r);\n"
-              "    return length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - r;\n"
+              "    vec2 texturePixel = frameRect.xy + framePixel;\n"
+              "    return vec2(texturePixel.x / textureSize.x,\n"
+              "                1.0 - texturePixel.y / textureSize.y);\n"
+              "}\n"
+              "\n";
+
+    source += "vec4 sampleFramePixel(vec2 framePixel)\n"
+              "{\n"
+              "    return " + textureLookup + "(sampler, framePixelToTex(framePixel));\n"
+              "}\n"
+              "\n"
+              // The decoration shadow is already part of KWin's offscreen
+              // texture. Once the opaque frame has been rendered, however, the
+              // shadow underneath the frame is no longer recoverable by merely
+              // lowering the frame alpha. Reconstruct each clipped corner from
+              // the two adjacent native-shadow edges.
+              "vec4 nativeCornerShadow(vec2 point, bool right, bool bottom)\n"
+              "{\n"
+              "    const float margin = 3.0;\n"
+              "    vec2 size = frameRect.zw;\n"
+              "    float leftMargin = frameRect.x;\n"
+              "    float topMargin = frameRect.y;\n"
+              "    float rightMargin = textureSize.x - frameRect.x - size.x;\n"
+              "    float bottomMargin = textureSize.y - frameRect.y - size.y;\n"
+              "    bool hasVerticalShadow = right ? rightMargin >= margin : leftMargin >= margin;\n"
+              "    bool hasHorizontalShadow = bottom ? bottomMargin >= margin : topMargin >= margin;\n"
+              "    if (!hasVerticalShadow || !hasHorizontalShadow) {\n"
+              // CSD windows can have no expanded shadow texture. Transparent
+              // black keeps the output valid for premultiplied-alpha blending.
+              "        return vec4(0.0);\n"
+              "    }\n"
+              "\n"
+              "    vec2 a;\n"
+              "    vec2 b;\n"
+              "    if (!right && !bottom) {\n"
+              "        a = vec2(-margin, point.y + point.x + margin);\n"
+              "        b = vec2(point.x + point.y + margin, -margin);\n"
+              "    } else if (right && !bottom) {\n"
+              "        a = vec2(size.x + margin, point.y + (size.x - point.x) + margin);\n"
+              "        b = vec2(point.x - point.y - margin, -margin);\n"
+              "    } else if (!right && bottom) {\n"
+              "        a = vec2(-margin, point.y - point.x - margin);\n"
+              "        b = vec2(point.x + (size.y - point.y) + margin, size.y + margin);\n"
+              "    } else {\n"
+              "        a = vec2(size.x + margin, point.y - (size.x - point.x) - margin);\n"
+              "        b = vec2(point.x - (size.y - point.y) - margin, size.y + margin);\n"
+              "    }\n"
+              "\n"
+              "    vec4 aColor = sampleFramePixel(a);\n"
+              "    vec4 bColor = sampleFramePixel(b);\n"
+              "    float segment = max(distance(a, b), 0.001);\n"
+              "    return mix(aColor, bColor, clamp(distance(a, point) / segment, 0.0, 1.0));\n"
+              "}\n"
+              "\n"
+              "float cornerCoverage(vec2 point, vec2 center, float r)\n"
+              "{\n"
+              // Pixel centres are half a pixel away from the mathematical edge.
+              // This half-pixel coverage convention matches KWin rounded-corner
+              // effects and avoids a dark or bright one-pixel halo.
+              "    return clamp(r - distance(point, center) + 0.5, 0.0, 1.0);\n"
               "}\n"
               "\n"
               "void main(void)\n"
               "{\n"
               "    vec4 texel = " + textureLookup + "(sampler, texcoord0);\n"
-              "    texel *= modulation;\n"
-              "    texel.rgb = mix(vec3(dot(texel.rgb, vec3(0.2126, 0.7152, 0.0722))), texel.rgb, saturation);\n"
+              "    vec4 result = texel;\n"
               "\n"
-              "    vec2 point = texcoord0 * textureSize;\n"
-              "    vec2 halfSize = frameRect.zw * 0.5;\n"
-              "    vec2 centered = point - (frameRect.xy + halfSize);\n"
+              // KWin's GLTexture normalized-coordinate matrix flips the Y axis.
+              "    vec2 texturePoint = vec2(texcoord0.x, 1.0 - texcoord0.y) * textureSize;\n"
+              "    vec2 local = texturePoint - frameRect.xy;\n"
+              "    vec2 size = frameRect.zw;\n"
+              "    float r = min(radius, 0.5 * min(size.x, size.y));\n"
               "\n"
-              // Everything outside of the window frame - the decoration shadow -
-              // has to be left alone.
-              "    vec2 outside = abs(centered) - halfSize;\n"
-              "    if (max(outside.x, outside.y) > 0.0) {\n"
-              "        " + output + " = texel;\n"
-              "        return;\n"
+              "    if (r > 0.0 && local.x >= 0.0 && local.y >= 0.0\n"
+              "            && local.x <= size.x && local.y <= size.y) {\n"
+              // Only touch the four radius-by-radius corner squares. Straight
+              // edges must remain byte-for-byte identical to the captured
+              // texture; applying a rounded-rectangle SDF to the whole frame can
+              // introduce a translucent fringe along those edges.
+              "        bool corner = false;\n"
+              "        bool right = false;\n"
+              "        bool bottom = false;\n"
+              "        vec2 center = vec2(r, r);\n"
+              "\n"
+              "        if (local.x < r && local.y < r) {\n"
+              "            corner = true;\n"
+              "        } else if (local.x > size.x - r && local.y < r) {\n"
+              "            corner = true;\n"
+              "            right = true;\n"
+              "            center = vec2(size.x - r, r);\n"
+              "        } else if (local.x < r && local.y > size.y - r) {\n"
+              "            corner = true;\n"
+              "            bottom = true;\n"
+              "            center = vec2(r, size.y - r);\n"
+              "        } else if (local.x > size.x - r && local.y > size.y - r) {\n"
+              "            corner = true;\n"
+              "            right = true;\n"
+              "            bottom = true;\n"
+              "            center = vec2(size.x - r, size.y - r);\n"
+              "        }\n"
+              "\n"
+              "        if (corner) {\n"
+              "            float coverage = cornerCoverage(local, center, r);\n"
+              "            if (coverage < 1.0) {\n"
+              "                vec4 shadow = nativeCornerShadow(local, right, bottom);\n"
+              "                result = mix(shadow, texel, coverage);\n"
+              "            }\n"
+              "        }\n"
               "    }\n"
               "\n"
-              "    float dist = roundedBoxDistance(centered, halfSize, radius);\n"
-              "    float aa = max(length(fwidth(point)) * 0.5, 0.5);\n"
-              "    " + output + " = texel * (1.0 - smoothstep(-aa, aa, dist));\n"
+              // Apply KWin's paint modulation after the corner reconstruction so
+              // both the frame and sampled native shadow fade together.
+              "    result *= modulation;\n"
+              "    result.rgb = mix(vec3(dot(result.rgb, vec3(0.2126, 0.7152, 0.0722))), result.rgb, saturation);\n"
+              "    " + output + " = result;\n"
               "}\n";
 
     return source;
@@ -113,15 +207,54 @@ static QByteArray fragmentShaderSource()
 RoundedWindow::RoundedWindow()
     : KWin::OffscreenEffect()
 {
-    reconfigure(ReconfigureAll);
+    auto watchWindow = [this](KWin::EffectWindow *window) {
+        connect(window, &KWin::EffectWindow::windowMaximizedStateAboutToChange, this,
+                [this](KWin::EffectWindow *w, bool horizontal, bool vertical) {
+                    // Drop the current offscreen texture before either direction
+                    // of the maximize transition. In particular, a restore must
+                    // not reuse the full-screen texture captured while maximized.
+                    unredirect(w);
 
-    connect(KWin::effects, &KWin::EffectsHandler::windowAdded, this, &RoundedWindow::handleWindowAdded);
-    connect(KWin::effects, &KWin::EffectsHandler::windowDeleted, this, &RoundedWindow::handleWindowDeleted);
+                    if (horizontal && vertical) {
+                        m_maximizingWindows.insert(w);
+                        m_restoringWindows.remove(w);
+                    } else if (isMaximized(w)) {
+                        m_restoringWindows.insert(w);
+                        m_maximizingWindows.remove(w);
+                    } else {
+                        m_maximizingWindows.remove(w);
+                        m_restoringWindows.remove(w);
+                    }
 
-    const auto windows = KWin::effects->stackingOrder();
-    for (KWin::EffectWindow *window : windows) {
-        handleWindowAdded(window);
+                    w->addRepaintFull();
+                });
+    };
+
+    connect(KWin::effects, &KWin::EffectsHandler::windowAdded, this, watchWindow);
+    for (KWin::EffectWindow *window : KWin::effects->stackingOrder()) {
+        watchWindow(window);
     }
+
+    connect(KWin::effects, &KWin::EffectsHandler::windowClosed, this,
+            [this](KWin::EffectWindow *window) {
+                // A closed EffectWindow becomes "deleted" before the close
+                // animation has finished. Remember that it was rounded so the
+                // scale/fade animation keeps drawing the already-rounded FBO
+                // instead of switching to a square window for its last frames.
+                if (m_roundedWindows.contains(window)) {
+                    m_closingWindows.insert(window);
+                }
+                m_maximizingWindows.remove(window);
+                m_restoringWindows.remove(window);
+            });
+
+    connect(KWin::effects, &KWin::EffectsHandler::windowDeleted, this,
+            [this](KWin::EffectWindow *window) {
+                m_closingWindows.remove(window);
+                m_maximizingWindows.remove(window);
+                m_restoringWindows.remove(window);
+                m_roundedWindows.remove(window);
+            });
 }
 
 RoundedWindow::~RoundedWindow() = default;
@@ -136,87 +269,22 @@ bool RoundedWindow::enabledByDefault()
     return supported();
 }
 
-void RoundedWindow::reconfigure(ReconfigureFlags flags)
-{
-    Q_UNUSED(flags)
-
-    QSettings settings(QSettings::UserScope, QStringLiteral("cutefishos"), QStringLiteral("theme"));
-    qreal devicePixelRatio = settings.value(QStringLiteral("PixelRatio"), 1.0).toReal();
-    if (devicePixelRatio <= 0) {
-        devicePixelRatio = 1.0;
-    }
-    m_frameRadius = 11 * devicePixelRatio;
-
-    const auto windows = m_redirected;
-    for (KWin::EffectWindow *window : windows) {
-        window->addRepaintFull();
-    }
-}
-
-void RoundedWindow::handleWindowAdded(KWin::EffectWindow *window)
-{
-    if (!window) {
-        return;
-    }
-
-    connect(window, &KWin::EffectWindow::windowMaximizedStateChanged, this,
-            [this, window] { updateWindow(window); });
-    connect(window, &KWin::EffectWindow::windowFullScreenChanged, this,
-            [this, window] { updateWindow(window); });
-    connect(window, &KWin::EffectWindow::windowFrameGeometryChanged, this,
-            [this, window] { updateWindow(window); });
-    connect(window, &KWin::EffectWindow::windowDecorationChanged, this,
-            [this, window] { updateWindow(window); });
-
-    updateWindow(window);
-}
-
-void RoundedWindow::handleWindowDeleted(KWin::EffectWindow *window)
-{
-    m_redirected.remove(window);
-}
-
-void RoundedWindow::updateWindow(KWin::EffectWindow *window)
-{
-    const bool wanted = shouldRound(window);
-    const bool redirected = m_redirected.contains(window);
-
-    if (wanted == redirected) {
-        return;
-    }
-
-    if (wanted) {
-        if (KWin::GLShader *s = shader()) {
-            redirect(window);
-            setShader(window, s);
-            m_redirected.insert(window);
-        }
-    } else {
-        unredirect(window);
-        m_redirected.remove(window);
-    }
-
-    window->addRepaintFull();
-}
-
 bool RoundedWindow::shouldRound(KWin::EffectWindow *window) const
 {
-    if (!window || window->isDeleted() || !window->isOnCurrentDesktop()) {
+    if (!window || !window->isManaged()) {
         return false;
     }
 
-    if (s_allowList.contains(window->windowClass())) {
-        return true;
+    // Deleted windows can remain visible while KWin runs the close animation.
+    // Only keep rounding if this exact window was already rounded before close.
+    if (window->isDeleted()) {
+        return m_closingWindows.contains(window);
     }
 
-    if (!window->isManaged() || window->isFullScreen() || isMaximized(window)) {
-        return false;
-    }
-
-    // Client side decorated windows - the CutefishOS applications themselves -
-    // paint their own rounded corners and shadow. Cutting into them would only
-    // produce artefacts, so this effect is for windows KWin decorates.
-    if (!window->hasDecoration()) {
+    // A fully maximized window is square, but as soon as a restore starts we
+    // need the rounded path available from the first transformed frame.
+    if (window->isFullScreen()
+            || (isMaximized(window) && !m_restoringWindows.contains(window))) {
         return false;
     }
 
@@ -227,13 +295,31 @@ bool RoundedWindow::shouldRound(KWin::EffectWindow *window) const
         return false;
     }
 
+    const bool allowListed = s_allowList.contains(window->windowClass());
+    if (allowListed) {
+        return true;
+    }
+
+    if (!window->hasDecoration()) {
+        return false;
+    }
+
     return window->isNormalWindow() || window->isDialog() || window->isUtility();
 }
 
 bool RoundedWindow::isMaximized(KWin::EffectWindow *window) const
 {
+    const QRectF frame = window->frameGeometry();
     const QRectF maximizedArea = KWin::effects->clientArea(KWin::MaximizeArea, window);
-    return window->frameGeometry() == maximizedArea;
+
+    // Wayland geometry can differ from the maximize area by a fractional pixel
+    // while output scaling and decoration geometry settle. Exact QRectF equality
+    // makes the effect oscillate on/off at the end of maximize/restore.
+    constexpr qreal tolerance = 1.0;
+    return qAbs(frame.x() - maximizedArea.x()) <= tolerance
+        && qAbs(frame.y() - maximizedArea.y()) <= tolerance
+        && qAbs(frame.width() - maximizedArea.width()) <= tolerance
+        && qAbs(frame.height() - maximizedArea.height()) <= tolerance;
 }
 
 KWin::GLShader *RoundedWindow::shader()
@@ -255,11 +341,15 @@ void RoundedWindow::prePaintWindow(KWin::EffectWindow *window,
                                    KWin::WindowPrePaintData &data,
                                    std::chrono::milliseconds presentTime)
 {
-    if (m_redirected.contains(window)) {
+    const bool round = shouldRound(window);
+    if (round) {
         // The corners are cut out of the window, so it can no longer be treated
-        // as an opaque window - otherwise nothing would be blended with what is
-        // behind it and the cut out corners would stay black.
+        // as opaque. This also applies while open/close/restore animations
+        // transform the rounded offscreen texture.
         data.setTranslucent();
+        if (!window->isDeleted()) {
+            m_roundedWindows.insert(window);
+        }
     }
 
     KWin::OffscreenEffect::prePaintWindow(window, data, presentTime);
@@ -272,22 +362,78 @@ void RoundedWindow::drawWindow(const KWin::RenderTarget &renderTarget,
                                const QRegion &region,
                                KWin::WindowPaintData &data)
 {
-    if (m_redirected.contains(window)) {
-        if (KWin::GLShader *s = shader()) {
-            const QRectF expanded = window->expandedGeometry();
-            const QRectF frame = window->frameGeometry();
+    const bool transformed = mask & KWin::Effect::PAINT_WINDOW_TRANSFORMED;
 
-            // The offscreen texture covers the expanded geometry of the window,
-            // texcoord0 runs from (0, 0) to (1, 1) over it.
-            KWin::ShaderBinder binder(s);
-            s->setUniform("textureSize", QVector2D(expanded.width(), expanded.height()));
-            s->setUniform("frameRect", QVector4D(frame.x() - expanded.x(),
-                                                 frame.y() - expanded.y(),
-                                                 frame.width(),
-                                                 frame.height()));
-            s->setUniform("radius", float(m_frameRadius));
+    // Transformation itself is not a reason to drop rounded corners: opening,
+    // closing, minimizing and restoring all legitimately transform the window.
+    // The problematic case is specifically the transition *into* maximized
+    // state, where KWin cross-fades the previous buffer. Keep that direction on
+    // the normal path so our offscreen texture cannot be captured recursively.
+    if (transformed && m_maximizingWindows.contains(window)) {
+        unredirect(window);
+        KWin::OffscreenEffect::drawWindow(renderTarget, viewport, window, mask, region, data);
+        return;
+    }
+
+    // Clear transition bookkeeping only after the target geometry has settled.
+    // This avoids losing the state if KWin happens to paint one ordinary frame
+    // between the about-to-change signal and the scripted animation.
+    if (!transformed) {
+        if (m_maximizingWindows.contains(window) && isMaximized(window)) {
+            m_maximizingWindows.remove(window);
+        }
+        if (m_restoringWindows.contains(window) && !isMaximized(window)) {
+            m_restoringWindows.remove(window);
         }
     }
+
+    // Keep KWin's offscreen state tied to the current paint pass. Persisting our
+    // own redirect state across maximize/restore lets an old FBO survive a geometry
+    // transition and is especially fragile when the Maximize effect cross-fades a
+    // previous buffer. This is the same model used by maintained KWin rounded-corner
+    // effects: redirect only while the window currently needs the effect.
+    if (!shouldRound(window)) {
+        if (!window->isDeleted()) {
+            m_roundedWindows.remove(window);
+        }
+        unredirect(window);
+        KWin::OffscreenEffect::drawWindow(renderTarget, viewport, window, mask, region, data);
+        return;
+    }
+
+    if (!window->isDeleted()) {
+        m_roundedWindows.insert(window);
+    }
+
+    KWin::GLShader *s = shader();
+    if (!s) {
+        unredirect(window);
+        KWin::OffscreenEffect::drawWindow(renderTarget, viewport, window, mask, region, data);
+        return;
+    }
+
+    redirect(window);
+    setShader(window, s);
+
+    // OffscreenEffect allocates its texture in device pixels. Keep every shader
+    // geometry in that same coordinate space; using logical sizes here causes the
+    // mask and shadow boundary to drift at fractional scale.
+    const qreal scale = window->screen() ? window->screen()->scale() : viewport.scale();
+    const QRectF expanded = KWin::snapToPixels(window->expandedGeometry(), scale);
+    const QRectF frame = KWin::snapToPixels(window->frameGeometry(), scale);
+
+    const QSizeF textureSize(expanded.width() * scale, expanded.height() * scale);
+    const QPointF frameOffset((frame.x() - expanded.x()) * scale,
+                              (frame.y() - expanded.y()) * scale);
+    const QSizeF frameSize(frame.width() * scale, frame.height() * scale);
+
+    KWin::ShaderBinder binder(s);
+    s->setUniform("textureSize", QVector2D(textureSize.width(), textureSize.height()));
+    s->setUniform("frameRect", QVector4D(frameOffset.x(),
+                                         frameOffset.y(),
+                                         frameSize.width(),
+                                         frameSize.height()));
+    s->setUniform("radius", float(m_frameRadius * scale));
 
     KWin::OffscreenEffect::drawWindow(renderTarget, viewport, window, mask, region, data);
 }

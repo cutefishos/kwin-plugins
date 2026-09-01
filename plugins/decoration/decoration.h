@@ -22,7 +22,7 @@ public:
     void paint(QPainter *painter, const QRectF &repaintArea) override;
 
     bool darkMode() const { return m_darkMode; }
-    qreal devicePixelRatio() const { return m_devicePixelRatio; }
+    qreal outputScale() const;
     QPixmap buttonPixmap(KDecoration3::DecorationButtonType type, bool checked = false) const;
 
 private:
@@ -42,7 +42,6 @@ private:
     KDecoration3::DecorationButtonGroup *m_leftButtons = nullptr;
     KDecoration3::DecorationButtonGroup *m_rightButtons = nullptr;
 
-    qreal m_devicePixelRatio = 1.0;
     bool m_darkMode = false;
     int m_titleBarHeight = 30;
     int m_frameRadius = 11;

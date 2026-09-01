@@ -54,9 +54,8 @@ void Button::paint(QPainter *painter, const QRectF &repaintArea)
     }
 
     const QRectF buttonRect = geometry();
-    const qreal scale = decoration->devicePixelRatio();
-    const QRectF hoverRect = buttonRect.adjusted(2 * scale, 2 * scale, -2 * scale, -2 * scale);
-    const QRectF imageRect = QRectF(0, 0, 24 * scale, 24 * scale);
+    const QRectF hoverRect = buttonRect.adjusted(2, 2, -2, -2);
+    const QRectF imageRect = QRectF(0, 0, 24, 24);
 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);

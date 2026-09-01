@@ -70,6 +70,10 @@ bool Decoration::init()
         updateButtonsGeometry();
     });
     connect(window, &KDecoration3::DecoratedWindow::heightChanged, this, [this] { updateGeometry(); });
+    connect(window, &KDecoration3::DecoratedWindow::nextScaleChanged, this, [this] {
+        updateButtonPixmaps();
+        update();
+    });
 
     if (settings()) {
         connect(settings().get(), &KDecoration3::DecorationSettings::fontChanged, this, [this] {
@@ -92,7 +96,7 @@ bool Decoration::init()
         });
     }
 
-    // Follow the CutefishOS theme settings (dark mode, scaling) while the window is open.
+    // Follow the CutefishOS theme settings while the window is open.
     if (!m_themeSettingsFile.isEmpty()) {
         m_themeWatcher.addPath(m_themeSettingsFile);
         connect(&m_themeWatcher, &QFileSystemWatcher::fileChanged, this, [this] {
@@ -120,19 +124,9 @@ void Decoration::paint(QPainter *painter, const QRectF &repaintArea)
     }
 
     if (!window()->isShaded()) {
-        painter->save();
-        painter->setRenderHint(QPainter::Antialiasing);
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(titleBarBackgroundColor());
-
-        const bool rounded = !window()->isMaximized()
-            && (!settings() || settings()->isAlphaChannelSupported());
-        if (rounded) {
-            painter->drawRoundedRect(rect(), m_frameRadius, m_frameRadius);
-        } else {
-            painter->drawRect(rect());
-        }
-        painter->restore();
+        // The rounded-window effect owns the final frame shape. Paint an opaque,
+        // square decoration here so the same edge is not anti-aliased twice.
+        painter->fillRect(rect(), titleBarBackgroundColor());
 
         if (m_leftButtons) {
             m_leftButtons->paint(painter, repaintArea);
@@ -215,16 +209,13 @@ void Decoration::updateShadow()
                            2 * shadowOverlap,
                            shadowOffset + 2 * shadowOverlap);
 
-    // Contrast pixel around the window.
-    painter.setPen(gradientStopColor(shadowColor, shadowStrength * 0.5));
-    painter.setBrush(Qt::NoBrush);
-    painter.drawRoundedRect(innerRect, -0.5 + m_frameRadius, -0.5 + m_frameRadius);
-
-    // Mask out the area covered by the window itself.
+    // Mask out the area covered by the window itself. Keep the cutout on the
+    // integer pixel grid; the old +/-0.5 radii produced a one-pixel contrast
+    // fringe around the whole window once KWin applied its own rounded mask.
     painter.setPen(Qt::NoPen);
     painter.setBrush(Qt::black);
     painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-    painter.drawRoundedRect(innerRect, 0.5 + m_frameRadius, 0.5 + m_frameRadius);
+    painter.drawRoundedRect(innerRect, m_frameRadius, m_frameRadius);
     painter.end();
 
     s_shadow = std::make_shared<KDecoration3::DecorationShadow>();
@@ -243,12 +234,7 @@ void Decoration::reloadTheme()
 {
     m_themeSettings.sync();
 
-    m_devicePixelRatio = m_themeSettings.value(QStringLiteral("PixelRatio"), 1.0).toReal();
-    if (m_devicePixelRatio <= 0) {
-        m_devicePixelRatio = 1.0;
-    }
     m_darkMode = m_themeSettings.value(QStringLiteral("DarkMode"), false).toBool();
-    m_frameRadius = qRound(11 * m_devicePixelRatio);
 
     updateButtonPixmaps();
     updateShadow();
@@ -269,9 +255,22 @@ QPixmap Decoration::loadPixmap(const QString &path) const
         return {};
     }
 
-    // The icons are SVGs, render them at the size the buttons are painted with.
-    reader.setScaledSize(QSize(24, 24) * m_devicePixelRatio);
+    // Decoration geometry is expressed in logical coordinates on Wayland.
+    // Rasterize SVGs at the output scale for sharp icons, but keep their
+    // logical paint size at 24x24.
+    const qreal scale = outputScale();
+    reader.setScaledSize(QSize(qRound(24 * scale), qRound(24 * scale)));
     return QPixmap::fromImage(reader.read());
+}
+
+qreal Decoration::outputScale() const
+{
+    if (!window()) {
+        return 1.0;
+    }
+
+    const qreal scale = window()->nextScale();
+    return scale > 0 ? scale : 1.0;
 }
 
 QPixmap Decoration::buttonPixmap(KDecoration3::DecorationButtonType type, bool checked) const
@@ -310,7 +309,7 @@ QString Decoration::pixmapPath(KDecoration3::DecorationButtonType type, bool che
 
 int Decoration::titleBarHeight() const
 {
-    return qMax(1, qRound(m_titleBarHeight * m_devicePixelRatio));
+    return m_titleBarHeight;
 }
 
 QColor Decoration::titleBarBackgroundColor() const
