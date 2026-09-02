@@ -53,5 +53,5 @@ private:
     QSet<KWin::EffectWindow *> m_closingWindows;
     QSet<KWin::EffectWindow *> m_maximizingWindows;
     QSet<KWin::EffectWindow *> m_restoringWindows;
-    qreal m_frameRadius = 11;
+    qreal m_frameRadius = 14;
 };
