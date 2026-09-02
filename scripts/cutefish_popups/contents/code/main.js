@@ -9,31 +9,11 @@
 
 "use strict";
 
-var blocklist = [
-    // Ignore the black background behind the lock screen.
-    "ksmserver ksmserver",
-    // The logout screen has to be animated only by the logout effect.
-    "ksmserver-logout-greeter ksmserver-logout-greeter",
-    // The lock screen isn't a popup window.
-    "kscreenlocker_greet kscreenlocker_greet",
-    // KDE Plasma splash screen has to be animated only by the login effect.
-    "ksplashqml ksplashqml",
-    // The shell's own surfaces: panels, the desktop and the launcher. The
-    // launcher used to be faded in here, back when it was its own process with
-    // its own window class; it animates itself now.
-    "cutefish-shell cutefish-shell"
-];
-
 var allowlist = [
     "cutefish-screenshot cutefish-screenshot"
 ];
 
 function isPopupWindow(window) {
-    // If the window is blocklisted, don't animate it.
-    if (blocklist.indexOf(window.windowClass) != -1) {
-        return false;
-    }
-
     if (allowlist.indexOf(window.windowClass) != -1) {
         return true;
     }
@@ -81,7 +61,7 @@ function isPopupWindow(window) {
 var cutefishPopupsEffect = {
     loadConfig: function () {
         cutefishPopupsEffect.fadeInDuration = animationTime(100);
-        cutefishPopupsEffect.fadeOutDuration = animationTime(100) * 4;
+        cutefishPopupsEffect.fadeOutDuration = animationTime(100);
     },
     slotWindowAdded: function (window) {
         if (effects.hasActiveFullScreenEffect) {

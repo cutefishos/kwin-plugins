@@ -10,24 +10,12 @@
 
 "use strict";
 
-var blocklist = [
-    // The logout screen has to be animated only by the logout effect.
-    "ksmserver ksmserver",
-    "ksmserver-logout-greeter ksmserver-logout-greeter",
-
-    // KDE Plasma splash screen has to be animated only by the login effect.
-    "ksplashqml ksplashqml",
-
-    // Screenshot tools have to stay out of their own screenshots.
-    "spectacle spectacle",
-    "spectacle org.kde.spectacle",
-
-    // The status bar, the dock, the launcher and the desktop are one process
-    // and share this window class. None of them wants a scale animation: they
-    // are panels and overlays, and the launcher brings its own.
-    "cutefish-shell cutefish-shell",
-    "cutefish-screenshot cutefish-screenshot"
-];
+function isCutefishShell(window) {
+    return window.windowClass
+        .toLowerCase()
+        .split(/\s+/)
+        .indexOf("cutefish-shell") !== -1;
+}
 
 var scaleEffect = {
     loadConfig: function () {
@@ -40,21 +28,6 @@ var scaleEffect = {
         scaleEffect.outOpacity = 0.0;
     },
     isScaleWindow: function (window) {
-        // We don't want to animate most of plasmashell's windows, yet, some
-        // of them we want to, for example, Task Manager Settings window.
-        // The problem is that all those window share single window class.
-        // So, the only way to decide whether a window should be animated is
-        // to use a heuristic: if a window has decoration, then it's most
-        // likely a dialog or a settings window so we have to animate it.
-        if (window.windowClass == "plasmashell plasmashell"
-                || window.windowClass == "plasmashell org.kde.plasmashell") {
-            return window.hasDecoration;
-        }
-
-        if (blocklist.indexOf(window.windowClass) != -1) {
-            return false;
-        }
-
         if (window.hasDecoration) {
             return true;
         }
@@ -86,6 +59,9 @@ var scaleEffect = {
         window.setData(Effect.WindowForceBlurRole, null);
     },
     slotWindowAdded: function (window) {
+        if (isCutefishShell(window) && window.caption === "Launcher") {
+            return;
+        }
         if (effects.hasActiveFullScreenEffect) {
             return;
         }
