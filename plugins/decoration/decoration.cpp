@@ -20,8 +20,17 @@ namespace Cutefish
 {
 
 static int s_decorationCount = 0;
-static int s_shadowRadius = -1;
-static std::shared_ptr<KDecoration3::DecorationShadow> s_shadow;
+
+struct ShadowCache
+{
+    int radius = -1;
+    std::shared_ptr<KDecoration3::DecorationShadow> shadow;
+};
+
+static ShadowCache s_activeShadow;
+static ShadowCache s_inactiveShadow;
+constexpr qreal ActiveShadowStrength = 0.8;
+constexpr qreal InactiveShadowStrength = 0.5;
 
 Decoration::Decoration(QObject *parent, const QVariantList &args)
     : KDecoration3::Decoration(parent, args)
@@ -33,8 +42,8 @@ Decoration::Decoration(QObject *parent, const QVariantList &args)
 Decoration::~Decoration()
 {
     if (--s_decorationCount == 0) {
-        s_shadow.reset();
-        s_shadowRadius = -1;
+        s_activeShadow = {};
+        s_inactiveShadow = {};
     }
 }
 
@@ -54,7 +63,10 @@ bool Decoration::init()
 
     auto window = this->window();
     connect(window, &KDecoration3::DecoratedWindow::captionChanged, this, [this] { update(); });
-    connect(window, &KDecoration3::DecoratedWindow::activeChanged, this, [this] { update(); });
+    connect(window, &KDecoration3::DecoratedWindow::activeChanged, this, [this] {
+        updateShadow();
+        update();
+    });
     connect(window, &KDecoration3::DecoratedWindow::shadedChanged, this, [this] {
         updateGeometry();
         updateButtonsGeometry();
@@ -172,13 +184,15 @@ void Decoration::updateButtonsGeometry()
 
 void Decoration::updateShadow()
 {
-    if (s_shadow && s_shadowRadius == m_frameRadius) {
-        setShadow(s_shadow);
+    const bool active = window() && window()->isActive();
+    ShadowCache &cache = active ? s_activeShadow : s_inactiveShadow;
+    if (cache.shadow && cache.radius == m_frameRadius) {
+        setShadow(cache.shadow);
         return;
     }
 
     const int shadowSize = 90;
-    const int shadowStrength = 35;
+    const int shadowStrength = qRound(35 * (active ? ActiveShadowStrength : InactiveShadowStrength));
     const QColor shadowColor = Qt::black;
     const int shadowOverlap = m_frameRadius;
     const int shadowOffset = shadowOverlap / 2;
@@ -218,16 +232,16 @@ void Decoration::updateShadow()
     painter.drawRoundedRect(innerRect, m_frameRadius, m_frameRadius);
     painter.end();
 
-    s_shadow = std::make_shared<KDecoration3::DecorationShadow>();
-    s_shadow->setPadding(QMarginsF(shadowSize - shadowOverlap,
-                                   shadowSize - shadowOffset - shadowOverlap,
-                                   shadowSize - shadowOverlap,
-                                   shadowSize - shadowOverlap));
-    s_shadow->setInnerShadowRect(QRectF(shadowSize, shadowSize, 1, 1));
-    s_shadow->setShadow(image);
-    s_shadowRadius = m_frameRadius;
+    cache.shadow = std::make_shared<KDecoration3::DecorationShadow>();
+    cache.shadow->setPadding(QMarginsF(shadowSize - shadowOverlap,
+                                       shadowSize - shadowOffset - shadowOverlap,
+                                       shadowSize - shadowOverlap,
+                                       shadowSize - shadowOverlap));
+    cache.shadow->setInnerShadowRect(QRectF(shadowSize, shadowSize, 1, 1));
+    cache.shadow->setShadow(image);
+    cache.radius = m_frameRadius;
 
-    setShadow(s_shadow);
+    setShadow(cache.shadow);
 }
 
 void Decoration::reloadTheme()
